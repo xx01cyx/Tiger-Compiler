@@ -67,6 +67,7 @@
  <STR>\" {adjustStr(); begin(StartCondition__::INITIAL); return Parser::STRING;}
  <STR>\\n|\\t|\\\"|\\\\|{control}|{printable} {adjustStr();}
  <STR>\\ {adjust(); begin(StartCondition__::IGNORE);}
+ <STR><<EOF>> {errormsg_->Error(errormsg_->tok_pos_, "unterminated string");}
  <STR>. {adjustStr();}
  <IGNORE>[\n\t ] {adjust();}
  <IGNORE>\\ {adjust(); begin(StartCondition__::STR);}
