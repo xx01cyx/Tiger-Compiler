@@ -2,12 +2,13 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <iostream>
 
 namespace err {
 
 void ErrorMsg::Newline() {
   line_num_++;
-  line_pos_.push_front(tok_pos_);
+  line_pos_.push_front(++tok_pos_);
 }
 
 void ErrorMsg::Error(int pos, std::string_view message, ...) {
