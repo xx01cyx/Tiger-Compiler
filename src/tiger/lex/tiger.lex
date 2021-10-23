@@ -66,11 +66,11 @@
  \" {adjust(); begin(StartCondition__::STR);}
  <STR>\" {adjustStr(); begin(StartCondition__::INITIAL); return Parser::STRING;}
  <STR>\\n|\\t|\\\"|\\\\|{control}|{printable} {adjustStr();}
- <STR>\\ {adjust(); begin(StartCondition__::IGNORE);}
+ <STR>\\ {adjustIgn(); begin(StartCondition__::IGNORE);}
  <STR>. {adjustStr();}
  <STR><<EOF>> {errormsg_->Error(errormsg_->tok_pos_, "unterminated string");}
- <IGNORE>[\n\t ] {adjust();}
- <IGNORE>\\ {adjust(); begin(StartCondition__::STR);}
+ <IGNORE>[\n\t ] {adjustIgn();}
+ <IGNORE>\\ {adjustIgn(); begin(StartCondition__::STR);}
 
  /* comments */
  <INITIAL,COMMENT>"/*" {adjust(); begin(StartCondition__::COMMENT);}

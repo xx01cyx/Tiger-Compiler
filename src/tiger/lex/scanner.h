@@ -66,6 +66,7 @@ private:
   void postCode(PostEnum__ type);
   void adjust();
   void adjustStr();
+  void adjustIgn();
 };
 
 inline int Scanner::lex() { return lex__(); }
@@ -82,9 +83,7 @@ inline void Scanner::print() { print__(); }
 
 inline void Scanner::adjust() {
   std::string mStr = matched();
-  if (mStr != "\n" && mStr != " "
-      && mStr != "\t" && mStr != "\\")  // ignore \f___f\ in string
-    errormsg_->tok_pos_ = char_pos_;
+  errormsg_->tok_pos_ = char_pos_;
   if (mStr == "/*")  // start of comment
     comment_level_++;
   else if (mStr == "*/") // end of comment
@@ -119,6 +118,10 @@ inline void Scanner::adjustStr() {
   } else {
     string_buf_ += mStr;
   }
+}
+
+inline void Scanner::adjustIgn() {
+  char_pos_ += length();
 }
 
 #endif // TIGER_LEX_SCANNER_H_
