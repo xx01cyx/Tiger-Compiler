@@ -51,6 +51,9 @@ private:
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
 
+  static const int CONTROL_CHAR_STRLEN = 3;
+  static const int PRINTABLE_CHAR_STRLEN = 4;
+
   /**
    * NOTE: do not change all the funtion signature below, which is used by
    * flexc++ internally
@@ -78,10 +81,44 @@ inline void Scanner::postCode(PostEnum__ type) {
 inline void Scanner::print() { print__(); }
 
 inline void Scanner::adjust() {
-  errormsg_->tok_pos_ = char_pos_;
+  std::string mStr = matched();
+  if (mStr != "\n" && mStr != " "
+      && mStr != "\t" && mStr != "\\")  // ignore \f___f\ in string
+    errormsg_->tok_pos_ = char_pos_;
+  if (mStr == "/*")  // start of comment
+    comment_level_++;
+  else if (mStr == "*/") // end of comment
+    comment_level_--;
   char_pos_ += length();
 }
 
-inline void Scanner::adjustStr() { char_pos_ += length(); }
+inline void Scanner::adjustStr() {
+  std::string mStr = matched();
+  int pChar;
+  char_pos_ += length();
+  if (mStr == "\"") { // end of string
+    setMatched(string_buf_);
+    string_buf_ = "";
+  } else if (mStr == "\\n") { // linefeed in string
+    string_buf_ += '\n';
+  } else if (mStr == "\\t") { // tab in string
+    string_buf_ += '\t';
+  } else if (mStr == "\\\"") {  // quote in string
+    string_buf_ += '\"';
+  } else if (mStr == "\\\\") {  // backslash in string
+    string_buf_ += '\\';
+  } else if (mStr.size() == CONTROL_CHAR_STRLEN
+             && mStr.find("\\^") == 0
+             && mStr.back() >= 'A'
+             && mStr.back() <= 'Z') { // ascii for control code
+    string_buf_ += (char)(mStr.back() - 'A' + 1);
+  } else if (mStr.size() == PRINTABLE_CHAR_STRLEN
+             && sscanf(mStr.c_str(), "\\%d", &pChar)
+                    != std::char_traits<char>::eof()) { // ascii for printable character
+    string_buf_ += (char)pChar;
+  } else {
+    string_buf_ += mStr;
+  }
+}
 
 #endif // TIGER_LEX_SCANNER_H_
