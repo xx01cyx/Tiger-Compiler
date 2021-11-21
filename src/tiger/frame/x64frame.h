@@ -7,6 +7,8 @@
 
 #include "tiger/frame/frame.h"
 
+#define X64_WORD_SIZE 8
+
 namespace frame {
 class X64RegManager : public RegManager {
   /* TODO: Put your lab5 code here */
@@ -41,10 +43,15 @@ public:
   static const int R15 = 15;
 
 private:
-  static const int WORD_SIZE =  8;
+  static const int WORD_SIZE = X64_WORD_SIZE;
   static const int REG_COUNT = 16;
 
 };
+
+Frame *NewFrame(temp::Label *name, std::vector<bool> formals);
+tree::Exp *AccessExp(Access *acc, tree::Exp *fp);
+tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
 
 } // namespace frame
 #endif // TIGER_COMPILER_X64FRAME_H

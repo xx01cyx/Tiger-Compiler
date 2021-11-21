@@ -77,6 +77,22 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+protected:
+  Frame() = default;
+  explicit Frame(temp::Label *name) : name_(name), local_count_(0) {}
+  virtual ~Frame() = default;
+
+  int word_size_;  // machine dependent and initilized in subclass
+
+public:
+  virtual Access *AllocLocal(bool escape) = 0;
+  virtual temp::Temp *FramePointer() const = 0;
+  virtual int WordSize() const = 0;
+
+  temp::Label *name_;
+  std::vector<Access *> formal_access_;
+  std::vector<Access *> local_access_;
+  int local_count_;
 };
 
 /**
