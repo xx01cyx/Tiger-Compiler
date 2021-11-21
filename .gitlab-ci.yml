@@ -53,6 +53,7 @@ test_lab5_part1:
    - make gradelab5-1 | tee output.log
    - python3 upload.py
 
+<<<<<<< HEAD
 test_lab5:
  image: ipadsse302/tigerlabs_score_env
  tags:

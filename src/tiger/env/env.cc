@@ -73,7 +73,7 @@ void ProgTr::FillBaseVEnv() {
   type::TyList *formals;
 
   temp::Label *label = nullptr;
-  tr::Level *level = main_level_.get();
+  tr::Level *level = outermost_level_.get();
 
   venv_->Enter(sym::Symbol::UniqueSymbol("flush"),
                new env::FunEntry(level, label, new type::TyList(),
