@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
@@ -63,7 +64,12 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  [[nodiscard]] virtual temp::Temp *ArithmeticAssistant() = 0;
+
+  [[nodiscard]] virtual temp::Temp *ProgramCounter() = 0;
+
   temp::Map *temp_map_;
+
 protected:
   std::vector<temp::Temp *> regs_;
 };
@@ -78,6 +84,31 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+protected:
+  Frame() = default;
+  explicit Frame(temp::Label *name) : name_(name), local_count_(0), max_outgoing_args_(0) {}
+  virtual ~Frame() = default;
+
+  int word_size_;  // machine dependent thus initilized in subclass
+
+public:
+  virtual Access *AllocLocal(bool escape) = 0;
+  // virtual tree::Exp *FramePointer(temp::Temp *fp_reg) const = 0;
+  virtual tree::Exp *FrameAddress() const = 0;
+  virtual int WordSize() const = 0;
+  virtual std::string GetLabel() const = 0;
+  virtual tree::Exp *StackOffset(int frame_offset) const = 0;
+
+  temp::Label *name_;
+  std::vector<Access *> formal_access_;
+  std::vector<Access *> local_access_;
+  int local_count_;
+
+  temp::Label *frame_size_;  // alter when frame size is known
+  tree::Stm *view_shift;
+  tree::Stm *save_callee_saves;
+  tree::Stm *restore_callee_saves;
+  int max_outgoing_args_;
 };
 
 /**

@@ -94,6 +94,16 @@ public:
       : prolog_(std::move(prolog)), body_(body), epilog_(std::move(epilog)) {}
 };
 
+class MemFetch {
+public:
+  std::string fetch_;
+  temp::TempList *regs_;
+
+  MemFetch() { regs_ = new temp::TempList(); }
+  MemFetch(std::string fetch, temp::TempList *regs) 
+    : fetch_(fetch), regs_(regs) {}
+};
+
 } // namespace assem
 
 #endif

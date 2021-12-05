@@ -34,3 +34,6 @@ _deps
 
 # python cache
 *.pyc
+
+shell.txt
+
