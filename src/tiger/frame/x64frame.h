@@ -5,6 +5,8 @@
 #ifndef TIGER_COMPILER_X64FRAME_H
 #define TIGER_COMPILER_X64FRAME_H
 
+#include <unordered_map>
+
 #include "tiger/frame/frame.h"
 
 #define X64_WORD_SIZE 8
@@ -24,34 +26,27 @@ public:
   temp::Temp *FramePointer() override;
   temp::Temp *StackPointer() override;
   temp::Temp *ReturnValue() override;
+  temp::Temp *ArithmeticAssistant() override;
+  temp::Temp *ProgramCounter() override;
 
-  static const int RAX = 0;
-  static const int RBX = 1;
-  static const int RCX = 2;
-  static const int RDX = 3;
-  static const int RSI = 4;
-  static const int RDI = 5;
-  static const int RBP = 6;
-  static const int RSP = 7;
-  static const int R8 = 8;
-  static const int R9 = 9;
-  static const int R10 = 10;
-  static const int R11 = 11;
-  static const int R12 = 12;
-  static const int R13 = 13;
-  static const int R14 = 14;
-  static const int R15 = 15;
+  enum Register {
+    RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8, R9, R10, R11, R12, R13, R14, R15, RIP, REG_COUNT, 
+  };
+
+  static std::unordered_map<Register, std::string> reg_str;
 
 private:
   static const int WORD_SIZE = X64_WORD_SIZE;
-  static const int REG_COUNT = 16;
 
 };
 
 Frame *NewFrame(temp::Label *name, std::vector<bool> formals);
-tree::Exp *AccessExp(Access *acc, tree::Exp *fp);
+tree::Exp *AccessCurrentExp(Access *acc, Frame *frame);
+tree::Exp *AccessExp(Access* acc, tree::Exp *fp);
 tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
 tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
+assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body);
 
 } // namespace frame
 #endif // TIGER_COMPILER_X64FRAME_H

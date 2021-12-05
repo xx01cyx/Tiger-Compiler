@@ -95,8 +95,6 @@ type::Ty *StringExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                               int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
-  std::cout << "CallExp: " << func_->Name() << std::endl;
-
   env::EnvEntry* entry;
   env::FunEntry* funcEnt;
   type::TyList* formalList;
@@ -116,7 +114,7 @@ type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::Ty* argTy, * formalTy;
     formalTy = (*formalIt)->ActualTy();
     argTy = (*argIt)->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
-    if (typeid(*argTy) != typeid(*formalTy)) {
+    if (!argTy->IsSameType(formalTy)) {
       errormsg->Error((*argIt)->pos_, "para type mismatch");
       return type::VoidTy::Instance();
     }
@@ -308,7 +306,7 @@ type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   tenv->BeginScope();
 
   for (Dec* dec : decs_->GetList()) {
-    std::cout << "LetExp: dec is " << typeid(*dec).name() << std::endl;
+//    std::cout << "LetExp: dec is " << typeid(*dec).name() << std::endl;
     dec->SemAnalyze(venv, tenv, labelcount, errormsg);
   }
   type::Ty *result = body_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
@@ -323,15 +321,12 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   type::Ty* arrayTy, * sizeTy, * initTy;
-  // type::ArrayTy* castTy;
 
   arrayTy = tenv->Look(typ_);
   if (!arrayTy || typeid(*arrayTy->ActualTy()) != typeid(type::ArrayTy)) {
     errormsg->Error(pos_, "no array type %s", typ_->Name().data());
     return type::IntTy::Instance();
   }
-
-  // castTy = static_cast<type::ArrayTy*>(arrayTy);
 
   sizeTy = size_->SemAnalyze(venv, tenv, labelcount, errormsg);
   if (typeid(*sizeTy) != typeid(type::IntTy)) {
@@ -344,6 +339,8 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(init_->pos_, "type mismatch");
     return arrayTy;
   }
+
+  return arrayTy;
   
 }
 
@@ -366,13 +363,13 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
       return;
     }
     functionRecord[function->name_->Name()] = 1;
-    resultTy = tenv->Look(function->result_);
+    resultTy = function->result_ ? tenv->Look(function->result_) : nullptr;
     formals = function->params_->MakeFormalTyList(tenv, errormsg);
     venv->Enter(function->name_, new env::FunEntry(formals, resultTy));
   }
 
   for (FunDec* function : functions_->GetList()) {
-    resultTy = tenv->Look(function->result_);
+    resultTy = function->result_ ? tenv->Look(function->result_) : nullptr;
     formals = function->params_->MakeFormalTyList(tenv, errormsg);
     
     venv->BeginScope();
@@ -384,10 +381,10 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
 
     bodyTy = function->body_->SemAnalyze(venv, tenv, labelcount, errormsg);
-    if (!resultTy && typeid(*bodyTy) != typeid(type::VoidTy)) {
+    if (!function->result_ && typeid(*bodyTy) != typeid(type::VoidTy)) {
       errormsg->Error(function->body_->pos_, "procedure returns value");
-    } else if (resultTy && !bodyTy->IsSameType(resultTy)) {
-      errormsg->Error(function->body_->pos_, "");
+    } else if (function->result_ && !bodyTy->IsSameType(resultTy)) {
+      errormsg->Error(function->body_->pos_, "wrong function return type");
     }
 
     venv->EndScope();
@@ -400,7 +397,6 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   type::Ty* ty, * initTy;
 
   if (typ_) {
-    std::cout << "VarDec: typ_ is " << typ_->Name() << std::endl;
     ty = tenv->Look(typ_);
     if (!ty) {
       errormsg->Error(pos_, "undefined type %s", typ_->Name().data());
@@ -409,10 +405,11 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   }
 
   initTy = init_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  if (typeid(*initTy) == typeid(type::NilTy) && (!typ_ || typeid(*ty) != typeid(type::RecordTy))) {
-    errormsg->Error(init_->pos_, "init should not be nil without type specified");
-    return;
-  } else if (typ_ && ty->ActualTy() != initTy->ActualTy()) {
+  if (typeid(*initTy) == typeid(type::NilTy) 
+    && (!typ_ || typeid(*ty->ActualTy()) != typeid(type::RecordTy))) {
+      errormsg->Error(init_->pos_, "init should not be nil without type specified");
+      return;
+  } else if (typ_ && !(initTy->IsSameType(ty))) {
     errormsg->Error(init_->pos_, "type mismatch");
     return;
   }
@@ -428,7 +425,6 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   unordered_map<string, int> typeRecord;
 
   for (NameAndTy* nameAndTy : types_->GetList()) {
-    // cout << "TypeDec 1: " << nameAndTy->name_->Name() << endl;
     if (typeRecord.count(nameAndTy->name_->Name())) {
       errormsg->Error(nameAndTy->ty_->pos_, "two types have the same name");
       return;
@@ -438,7 +434,6 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   }
 
   for (NameAndTy* nameAndTy : types_->GetList()) {
-    // cout << "TypeDec 2: " << nameAndTy->name_->Name() << endl;
     ty = tenv->Look(nameAndTy->name_);
     if (!ty) {
       errormsg->Error(nameAndTy->ty_->pos_, "undefined type %s", nameAndTy->name_->Name().data());
@@ -451,7 +446,6 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
 
   // Detect cycle
   for (NameAndTy* nameAndTy : types_->GetList()) {
-    // cout << "TypeDec 3: " << nameAndTy->name_->Name() << endl;
     ty = static_cast<type::NameTy*>(tenv->Look(nameAndTy->name_))->ty_;
     while (typeid(*ty) == typeid(type::NameTy)) {
       tenvTy = static_cast<type::NameTy*>(ty);

@@ -44,6 +44,8 @@ public:
     std::unique_ptr<err::ErrorMsg> errormsg) {
       absyn_tree_ = std::move(absyn_tree);
       errormsg_ = std::move(errormsg);
+      tenv_ = std::make_unique<env::TEnv>();
+      venv_ = std::make_unique<env::VEnv>();
       outermost_level_ = std::make_unique<Level>();
       FillBaseVEnv();
       FillBaseTEnv();
