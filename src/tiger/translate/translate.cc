@@ -159,7 +159,7 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  std::cout << "SimpleVar: " << sym_->Name() << std::endl;
+  // std::cout << "SimpleVar: " << sym_->Name() << std::endl;
 
   env::EnvEntry *ent = venv->Look(sym_);
   if (!ent) {
@@ -296,7 +296,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  std::cout << "call function " << func_->Name() << std::endl;
+  // std::cout << "call function " << func_->Name() << std::endl;
 
   env::EnvEntry *ent = venv->Look(func_);
   if (!ent || typeid(*ent) != typeid(env::FunEntry)) {
@@ -313,51 +313,27 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     // Pass the static link
     if (func_ent->level_->parent_ == level) {
       // Caller is exactly the callee's parent. Just pass its own fp.
-      std::cout << "case 1" << std::endl;
       args->Append(level->frame_->FrameAddress());
 
     } else {
-      std::cout << "case 2 or 3" << std::endl;
       tree::Exp *static_link = frame::AccessCurrentExp(level->frame_->formal_access_.front(), level->frame_);
       tr::Level *cur_level = level->parent_;  // Owns the frame which static_link points to
-      std::cout << "jump 1 time" << std::endl;
 
-      std::cout << "level of static link: " << cur_level->frame_->GetLabel() << std::endl;
-      std::cout << "level of func_ent: " << func_ent->level_->frame_->GetLabel() << std::endl;
-      std::cout << "level of func_ent's parent: " << func_ent->level_->parent_->frame_->GetLabel() << std::endl;
+      // std::cout << "level of static link: " << cur_level->frame_->GetLabel() << std::endl;
+      // std::cout << "level of func_ent: " << func_ent->level_->frame_->GetLabel() << std::endl;
+      // std::cout << "level of func_ent's parent: " << func_ent->level_->parent_->frame_->GetLabel() << std::endl;
 
-      if (cur_level == func_ent->level_->parent_) {
-        std::cout << "case 2" << std::endl;
-      } else {
-        std::cout << "continue" << std::endl;
-      }
       // Follow the static link upwards.
       int i = 1;
       while (cur_level && cur_level != func_ent->level_->parent_) {
         static_link = frame::AccessExp(cur_level->parent_->frame_->formal_access_.front(), static_link);
         cur_level = cur_level->parent_;
-        std::cout << "jump " << ++i << " times" << std::endl;
       }
 
       // Caller is deeper than or as deep as callee.
       if (cur_level) { 
-        std::cout << "case 3" << std::endl;
         args->Append(static_link);
 
-      // } else {
-      //   // Caller is less deeper than callee.
-      //   static_link = frame::AccessCurrentExp(func_ent->level_->frame_->formal_access_.front(), level->frame_);
-      //   cur_level = func_ent->level_->parent_;
-
-      //   while (cur_level && cur_level != level) {
-      //     static_link = frame::AccessExp(cur_level->parent_->frame_->formal_access_.front(), static_link);
-      //     cur_level = cur_level->parent_;
-      //   }
-      //   if (cur_level) {
-      //     args->Append(static_link);
-      //   } else {
-      //     return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)), type::VoidTy::Instance());  // Error. No matched function is found.
-      //   }
       } else {
         // Error. No matched function is found.
         errormsg->Error(pos_, "%s cannot call %s", level->frame_->GetLabel().data(), 
@@ -577,8 +553,6 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
                                err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  std::cout << "start if" << std::endl;
-
   tr::ExpAndTy *test_expty = test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *then_expty = then_->Translate(venv, tenv, level, label, errormsg);
   tr::Cx test_cx = test_expty->exp_->UnCx(errormsg);
@@ -599,7 +573,6 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
 
     if (typeid(*then_expty->ty_) == typeid(type::VoidTy)) {
-      std::cout << "if without else returns no value" << std::endl;
       // *test_cx.trues_ = true_label;
       // *test_cx.falses_ = false_label;
       tree::Stm* stm = new tree::SeqStm(test_cx.stm_, 
@@ -628,7 +601,6 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     std::vector<temp::Label *> *converge_jumps = new std::vector<temp::Label *>{converge_label};
     
     if (typeid(*then_expty->ty_) == typeid(type::VoidTy)) {
-      std::cout << "if with else returns no value" << std::endl;
       tree::Stm *stm = new tree::SeqStm(test_cx.stm_,
                           new tree::SeqStm(new tree::LabelStm(*test_cx.trues_), 
                             new tree::SeqStm(then_expty->exp_->UnNx(),
@@ -639,7 +611,6 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       return new tr::ExpAndTy(new tr::NxExp(stm), type::VoidTy::Instance());
 
     } else {
-      std::cout << "if with else returns some value" << std::endl;
       temp::Temp *reg = temp::TempFactory::NewTemp();
       tree::Exp *reg_exp = new tree::TempExp(reg);
       tree::Exp *exp = new tree::EseqExp(test_cx.stm_,
@@ -793,8 +764,8 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   tr::ExpAndTy *init_expty = init_->Translate(venv, tenv, level, label, errormsg);
   if (!(init_expty->ty_->IsSameType(arr_ty->ty_))) {
-    std::cout << "ArrayExp: init type is " << typeid(*init_expty->ty_->ActualTy()).name()
-              << ", element type should be " << typeid(arr_ty->ty_->ActualTy()).name();
+    // std::cout << "ArrayExp: init type is " << typeid(*init_expty->ty_->ActualTy()).name()
+    //           << ", element type should be " << typeid(arr_ty->ty_->ActualTy()).name();
     errormsg->Error(init_->pos_, "type mismatch");
     return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)), type::VoidTy::Instance());
   }
@@ -836,7 +807,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     result_ty = function->result_ ? 
                   tenv->Look(function->result_) : type::VoidTy::Instance();
     formal_tys = function->params_->MakeFormalTyList(tenv, errormsg);
-    std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
+    // std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
 
     std::vector<bool> formal_escapes = std::vector<bool>{true};
     for (auto param : function->params_->GetList()) 
@@ -850,7 +821,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   for (FunDec* function : functions_->GetList()) {
-    std::cout << "FunctionDec: " << function->name_->Name() << std::endl;
+    // std::cout << "FunctionDec: " << function->name_->Name() << std::endl;
 
     env::EnvEntry *ent = venv->Look(function->name_);
     env::FunEntry *func_ent = static_cast<env::FunEntry *>(ent);
@@ -864,19 +835,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     formal_tys = function->params_->MakeFormalTyList(tenv, errormsg);
     
     venv->BeginScope();
-
-    // std::vector<bool> formal_escapes = std::vector<bool>{true};
-    // for (auto param : function->params_->GetList()) 
-    //   formal_escapes.push_back(param->escape_);
-    
-    // frame::Frame* new_frame = frame::NewFrame(fun_label, formal_escapes);
-    // tr::Level *new_level = new tr::Level(new_frame, level);
-    // std::vector<frame::Access *> formal_access = new_frame->formal_access_;
-
-    // std::cout << "new level for " << new_level->frame_->GetLabel() << ", parent level is "
-    //           << new_level->parent_->frame_->GetLabel() << std::endl;
-
-    // std::cout << "size of formal access: " << formal_access.size() << std::endl;
 
     auto param_it = function->params_->GetList().cbegin();
     auto formal_ty_it = formal_tys->GetList().cbegin();
@@ -899,8 +857,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     tr::ProcEntryExit(new_level, new tr::NxExp(body_stm));
 
     venv->EndScope();
-
-    std::cout << "Finish FunctionDec for " << function->name_->Name() << std::endl;
   }
 
   return new tr::NxExp(new tree::ExpStm(new tree::ConstExp(0)));
@@ -910,7 +866,7 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  std::cout << "VarDec: " << var_->Name() << std::endl;
+  // std::cout << "VarDec: " << var_->Name() << std::endl;
 
   type::Ty* ty;
   if (typ_) {
@@ -944,7 +900,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   std::unordered_map<std::string, int> typeRecord;
 
   for (NameAndTy* nameAndTy : types_->GetList()) {
-    std::cout << "TypeDec: " << nameAndTy->name_->Name() << std::endl;
+    // std::cout << "TypeDec: " << nameAndTy->name_->Name() << std::endl;
 
     if (typeRecord.count(nameAndTy->name_->Name())) {
       errormsg->Error(nameAndTy->ty_->pos_, "two types have the same name");
