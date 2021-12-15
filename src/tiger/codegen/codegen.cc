@@ -34,7 +34,7 @@ void AssemInstr::Print(FILE *out, temp::Map *map) const {
 
 namespace tree {
 /* TODO: Put your lab5 code here */
-static assem::MemFetch *MunchMem(tree::Exp* mem_exp, bool dst, 
+static assem::MemFetch *MunchMem(tree::Exp* mem_exp, int ordinal, 
                                  assem::InstrList &instr_list, std::string_view fs) {
   tree::Exp *exp = static_cast<tree::MemExp *>(mem_exp)->exp_;
   std::stringstream mem_ss;
@@ -44,90 +44,50 @@ static assem::MemFetch *MunchMem(tree::Exp* mem_exp, bool dst,
     if (typeid(*bin_exp->right_) == typeid(tree::ConstExp)) {
       tree::ConstExp *offset_exp = static_cast<tree::ConstExp *>(bin_exp->right_);
       temp::Temp *base_reg = bin_exp->left_->Munch(instr_list, fs);
-      if (dst) {
+      // if (dst) {
+      //   if (offset_exp->consti_ == 0)
+      //     mem_ss << "(`d0)";
+      //   else
+      //     mem_ss << offset_exp->consti_ <<  "(`d0)";
+      // } else {
         if (offset_exp->consti_ == 0)
-          mem_ss << "(`d0)";
+          mem_ss << "(`s" << ordinal << ")";
         else
-          mem_ss << offset_exp->consti_ <<  "(`d0)";
-      } else {
-        if (offset_exp->consti_ == 0)
-          mem_ss << "(`s0)";
-        else
-          mem_ss << offset_exp->consti_ <<  "(`s0)";
-      }
+          mem_ss << offset_exp->consti_ <<  "(`s" << ordinal << ")";
+      // }
       return new assem::MemFetch(mem_ss.str(), new temp::TempList(base_reg));
+
     } else if (typeid(*bin_exp->left_) == typeid(tree::ConstExp)) {
       tree::ConstExp *offset_exp = static_cast<tree::ConstExp *>(bin_exp->left_);
       temp::Temp *base_reg = bin_exp->right_->Munch(instr_list, fs);
-      if (dst) {
+      // if (dst) {
+      //   if (offset_exp->consti_ == 0)
+      //     mem_ss << "(`d0)";
+      //   else
+      //     mem_ss << offset_exp->consti_ <<  "(`d0)";
+      // } else {
         if (offset_exp->consti_ == 0)
-          mem_ss << "(`d0)";
+          mem_ss << "(`s" << ordinal << ")";
         else
-          mem_ss << offset_exp->consti_ <<  "(`d0)";
-      } else {
-        if (offset_exp->consti_ == 0)
-          mem_ss << "(`s0)";
-        else
-          mem_ss << offset_exp->consti_ <<  "(`s0)";
-      }
+          mem_ss << offset_exp->consti_ <<  "(`s" << ordinal << ")";
+      // }
       return new assem::MemFetch(mem_ss.str(), new temp::TempList(base_reg));
+
     } else {
       temp::Temp* mem_reg = exp->Munch(instr_list, fs);
-      if (dst)
-        mem_ss << "(`d0)";
-      else
-        mem_ss << "(`s0)";
+      // if (dst)
+      //   mem_ss << "(`d0)";
+      // else
+        mem_ss << "(`s" << ordinal << ")";
         return new assem::MemFetch(mem_ss.str(), new temp::TempList(mem_reg));
     }
-//    if (upper_bin->op_ == tree::PLUS_OP
-//        && typeid(*upper_bin->right_) == typeid(tree::BinopExp)) {
-//          tree::BinopExp *lower_bin = static_cast<tree::BinopExp *>(upper_bin->right_);
-//          if (lower_bin->op_ == tree::MUL_OP
-//              && typeid(*lower_bin->right_) == typeid(tree::ConstExp)) {
-//                tree::ConstExp *usize_exp = static_cast<tree::ConstExp *>(lower_bin->right_);
-//                if (usize_exp->consti_ <= reg_manager->WordSize()
-//                    && !((usize_exp->consti_ - 1) & usize_exp->consti_)) {
-//                      // array subscription
-//                      temp::Temp *base_reg = upper_bin->left_->Munch(instr_list, fs);
-//                      temp::Temp *index_reg = lower_bin->left_->Munch(instr_list, fs);
-//                      if (dst)
-//                        mem_ss << "(`d0, `d1, " << usize_exp->consti_ << ")";
-//                      else
-//                        mem_ss << "(`s0, `s1, " << usize_exp->consti_ << ")";
-//                      return new assem::MemFetch(mem_ss.str(),
-//                              new temp::TempList({base_reg, index_reg}));
-//                } else {
-//                  return new assem::MemFetch();  // error
-//                }
-//          } else {
-//            return new assem::MemFetch();  // error
-//          }
-//    } else if (upper_bin->op_ == tree::PLUS_OP
-//        && typeid(*upper_bin->right_) == typeid(tree::ConstExp)) {
-//          // record field
-//          tree::ConstExp *offset_exp = static_cast<tree::ConstExp *>(upper_bin->right_);
-//          temp::Temp *base_reg = upper_bin->left_->Munch(instr_list, fs);
-//          if (dst) {
-//            if (offset_exp->consti_ == 0)
-//              mem_ss << "(`d0)";
-//            else
-//              mem_ss << offset_exp->consti_ <<  "(`d0)";
-//          } else {
-//            if (offset_exp->consti_ == 0)
-//              mem_ss << "(`s0)";
-//            else
-//              mem_ss << offset_exp->consti_ <<  "(`s0)";
-//          }
-//          return new assem::MemFetch(mem_ss.str(), new temp::TempList(base_reg));
-//    } else {
-//      return new assem::MemFetch();  // error
-//    }
+
  } else {
    temp::Temp* mem_reg = exp->Munch(instr_list, fs);
-   if (dst)
-     mem_ss << "(`d0)";
-   else
-     mem_ss << "(`s0)";
+  //  if (dst)
+  //    mem_ss << "(`d0)";
+  //  else
+     mem_ss << "(`s" << ordinal << ")";
     return new assem::MemFetch(mem_ss.str(), new temp::TempList(mem_reg));
   }
 }
@@ -199,27 +159,29 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
   if (typeid(*dst_) == typeid(tree::MemExp)) {  // movq r, M
     temp::Temp *src_reg = src_->Munch(instr_list, fs);
-    assem::MemFetch *fetch = MunchMem(dst_, true, instr_list, fs);
+    assem::MemFetch *fetch = MunchMem(dst_, 1, instr_list, fs);
     instr_ss << "movq `s0, " << fetch->fetch_;
-    instr_list.Append(new assem::MoveInstr(instr_ss.str(), 
-                        fetch->regs_, new temp::TempList(src_reg)));
+    temp::TempList *src_regs = new temp::TempList(src_reg);
+    src_regs->CatList(fetch->regs_);
+    instr_list.Append(new assem::OperInstr(instr_ss.str(), 
+                        nullptr, src_regs, nullptr));
 
   } else {
     if (typeid(*src_) == typeid(tree::MemExp)) {  // movq M, r
-      assem::MemFetch *fetch = MunchMem(src_, false, instr_list, fs);
+      assem::MemFetch *fetch = MunchMem(src_, 0, instr_list, fs);
       temp::Temp *dst_reg = dst_->Munch(instr_list, fs);
       instr_ss << "movq " << fetch->fetch_ << ", `d0";
-      instr_list.Append(new assem::MoveInstr(instr_ss.str(),
+      instr_list.Append(new assem::OperInstr(instr_ss.str(),
                           new temp::TempList(dst_reg),
-                          fetch->regs_));
+                          fetch->regs_, nullptr));
 
     } else if (typeid(*src_) == typeid(tree::ConstExp)) {  // movq $imm, r
       temp::Temp *dst_reg = dst_->Munch(instr_list, fs);
       instr_ss << "movq $" << static_cast<tree::ConstExp *>(src_)->consti_
                << ", `d0";
-      instr_list.Append(new assem::MoveInstr(instr_ss.str(), 
+      instr_list.Append(new assem::OperInstr(instr_ss.str(), 
                           new temp::TempList(dst_reg),
-                          nullptr));
+                          nullptr, nullptr));
 
     } else {  // movq r1, r2
       temp::Temp *src_reg = src_->Munch(instr_list, fs);
@@ -273,7 +235,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       tree::ConstExp *right_const = static_cast<tree::ConstExp *>(right_);
       instr_ss << assem_instr << " $" << right_const->consti_ << ", `d0";
       instr_list.Append(new assem::OperInstr(instr_ss.str(),
-                          new temp::TempList(res_reg),
+                          new temp::TempList({res_reg}),
                           new temp::TempList(res_reg),
                           nullptr));
       return res_reg;
@@ -282,7 +244,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       temp::Temp *right_reg = right_->Munch(instr_list, fs);
       instr_ss << assem_instr << " `s1, `d0";
       instr_list.Append(new assem::OperInstr(instr_ss.str(),
-                          new temp::TempList(res_reg), 
+                          new temp::TempList({res_reg}),
                           new temp::TempList({res_reg, right_reg}),
                           nullptr));
       return res_reg;
@@ -316,11 +278,11 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                           nullptr, nullptr));
 
     } else if (typeid(*left_) == typeid(tree::MemExp)) {  // movq M, %rax
-      assem::MemFetch *fetch = MunchMem(left_, false, instr_list, fs);
+      assem::MemFetch *fetch = MunchMem(left_, 0, instr_list, fs);
       instr_ss << "movq " << fetch->fetch_ << ", `d0";
-      instr_list.Append(new assem::MoveInstr(instr_ss.str(),
+      instr_list.Append(new assem::OperInstr(instr_ss.str(),
                           new temp::TempList(rax),
-                          fetch->regs_));
+                          fetch->regs_, nullptr));
 
     } else {  // movq r, %rax
       temp::Temp *left_reg = left_->Munch(instr_list, fs);
@@ -334,7 +296,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
     if (op_ == DIV_OP)
       instr_list.Append(new assem::OperInstr("cqto", 
-                          new temp::TempList({rdx, rax}),
+                          new temp::TempList({rdx, rax, rax_saver, rdx_saver}),
                           new temp::TempList(rax),
                           nullptr));
     
@@ -342,7 +304,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       tree::ConstExp *right_const = static_cast<tree::ConstExp *>(right_);
       instr_ss << assem_instr << " $" << right_const->consti_;
       instr_list.Append(new assem::OperInstr(instr_ss.str(),
-                          new temp::TempList({rdx, rax}),
+                          new temp::TempList({rdx, rax, rax_saver, rdx_saver}),
                           new temp::TempList({rdx, rax}),
                           nullptr));
 
@@ -350,7 +312,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       temp::Temp *right_reg = right_->Munch(instr_list, fs);
       instr_ss << assem_instr << " `s2";
       instr_list.Append(new assem::OperInstr(instr_ss.str(),
-                          new temp::TempList({rdx, rax}),
+                          new temp::TempList({rdx, rax, rax_saver, rdx_saver}),
                           new temp::TempList({rdx, rax, right_reg}),
                           nullptr));
     }
@@ -379,12 +341,12 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   temp::Temp *reg = temp::TempFactory::NewTemp();
-  assem::MemFetch* fetch = MunchMem(this, false, instr_list, fs);
+  assem::MemFetch* fetch = MunchMem(this, 0, instr_list, fs);
   std::stringstream instr_ss;
   instr_ss << "movq " << fetch->fetch_ << ", `d0";
-  instr_list.Append(new assem::MoveInstr(instr_ss.str(), 
+  instr_list.Append(new assem::OperInstr(instr_ss.str(), 
                       new temp::TempList(reg), 
-                      fetch->regs_));
+                      fetch->regs_, nullptr));
   return reg;
 }
 
@@ -404,11 +366,10 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *reg = temp::TempFactory::NewTemp();
   std::stringstream instr_ss;
   // load address
-  instr_ss << "leaq " << name_->Name() << "(" 
-           << *reg_manager->temp_map_->Look(reg_manager->ProgramCounter()) << "), `d0";
-  assem::Instr *instr = new assem::MoveInstr(instr_ss.str(), 
+  instr_ss << "leaq " << name_->Name() << "(%rip), `d0";
+  assem::Instr *instr = new assem::OperInstr(instr_ss.str(), 
                           new temp::TempList(reg), 
-                          nullptr);
+                          nullptr, nullptr);
   instr_list.Append(instr);
   return reg;
 }
@@ -418,9 +379,9 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *reg = temp::TempFactory::NewTemp();
   std::stringstream instr_ss;
   instr_ss << "movq $" << consti_ << ", `d0";
-  assem::Instr *instr = new assem::MoveInstr(instr_ss.str(), 
+  assem::Instr *instr = new assem::OperInstr(instr_ss.str(), 
                           new temp::TempList(reg), 
-                          nullptr);
+                          nullptr, nullptr);
   instr_list.Append(instr);
   return reg;
 }
@@ -430,16 +391,6 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *rax = reg_manager->ReturnValue();
   std::stringstream instr_ss;
 
-  // temp::Temp *fun_reg = fun_->Munch(instr_list, fs);
-  // instr_ss << "callq *`s0";
-  // temp::TempList *arg_list = args_->MunchArgs(instr_list, fs);
-  // temp::TempList *src_list = new temp::TempList(fun_reg);
-  // for (auto reg : arg_list->GetList())
-  //   src_list->Append(reg);
-  // instr_list.Append(new assem::OperInstr(instr_ss.str(), 
-  //                     reg_manager->CallerSaves(), 
-  //                     src_list, nullptr));
-
   if (typeid(*fun_) != typeid(tree::NameExp))  // error
     return rax; 
 
@@ -447,7 +398,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
   instr_ss << "callq " << static_cast<tree::NameExp *>(fun_)->name_->Name();
   instr_list.Append(new assem::OperInstr(instr_ss.str(), 
-                      reg_manager->CallerSaves(), 
+                      reg_manager->CallerSaves()->Union(new temp::TempList(reg_manager->StackPointer())), 
                       arg_list, nullptr));
   return rax;
 }
@@ -476,7 +427,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
       }
       arg_list->Append(dst_reg);
 
-    } else {  // the first one goes to (rsp)
+    } else {  // the first one goes to (%rsp)
       if (typeid(*arg) == typeid(tree::ConstExp)) {
         tree::ConstExp *const_exp = static_cast<tree::ConstExp *>(arg);
         instr_ss << "movq $" << const_exp->consti_ << ", ";
@@ -485,8 +436,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
         instr_ss << "(" << *reg_manager->temp_map_->Look(reg_manager->StackPointer())
                  << ")";
         instr_list.Append(new assem::OperInstr(instr_ss.str(), 
-                            new temp::TempList(reg_manager->StackPointer()),
-                            nullptr, nullptr));
+                            nullptr, nullptr, nullptr));
       } else {
         temp::Temp *src_reg = arg->Munch(instr_list, fs);
         instr_ss << "movq `s0, ";
@@ -495,7 +445,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
         instr_ss << "(" << *reg_manager->temp_map_->Look(reg_manager->StackPointer())
                  << ")";
         instr_list.Append(new assem::OperInstr(instr_ss.str(), 
-                            new temp::TempList(reg_manager->StackPointer()),
+                            nullptr,
                             new temp::TempList(src_reg), nullptr));
       }
     }

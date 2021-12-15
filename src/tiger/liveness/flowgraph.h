@@ -16,14 +16,13 @@ using FGraphPtr = graph::Graph<assem::Instr>*;
 
 class FlowGraphFactory {
 public:
-  explicit FlowGraphFactory(assem::InstrList *instr_list)
-      : instr_list_(instr_list), flowgraph_(new FGraph()),
+  explicit FlowGraphFactory()
+      : flowgraph_(new FGraph()),
         label_map_(std::make_unique<tab::Table<temp::Label, FNode>>()) {}
-  void AssemFlowGraph();
+  void AssemFlowGraph(assem::InstrList *instr_list);
   FGraphPtr GetFlowGraph() { return flowgraph_; }
 
 private:
-  assem::InstrList *instr_list_;
   FGraphPtr flowgraph_;
   std::unique_ptr<tab::Table<temp::Label, FNode>> label_map_;
 };

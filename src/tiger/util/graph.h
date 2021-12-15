@@ -2,6 +2,12 @@
 #define TIGER_UTIL_GRAPH_H_
 
 #include "tiger/util/table.h"
+#include "tiger/frame/temp.h"
+
+#include <set>
+#include <unordered_map>
+#include <iostream>
+#include <list>
 
 namespace graph {
 
@@ -17,27 +23,54 @@ public:
   NodeList<T> *Nodes();
 
   // Make a new node in graph "g", with associated "info_"
-  Node<T> *NewNode(T *info);
+  virtual Node<T> *NewNode(T *info);
 
   // Make a new edge joining nodes "from" and "to", which must belong
   // to the same graph
-  void AddEdge(Node<T> *from, Node<T> *to);
+  virtual void AddEdge(Node<T> *from, Node<T> *to);
 
   // Show all the nodes and edges in the graph, using the function "show_info"
   // to print the name of each node
   static void Show(FILE *out, NodeList<T> *p,
                    std::function<void(T *)> show_info);
 
+  virtual int GetDegree(Node<T> *n) { return n->Degree(); }
+  virtual void AddOneDegree(Node<T> *n) {}
+  virtual void MinusOneDegree(Node<T> *n) {}
+
   int nodecount_;
 
   ~Graph();
 
-private:
+protected:
   NodeList<T> *my_nodes_;
+};
+
+class IGraph : public Graph<temp::Temp> {
+public:
+  IGraph(temp::TempList *precolored) 
+    : Graph<temp::Temp>(), precolored_(precolored) {}
+
+  bool IAdj(Node<temp::Temp> *n, Node<temp::Temp> *m);
+
+  Node<temp::Temp> *NewNode(temp::Temp *info) override;
+  void AddEdge(Node<temp::Temp> *from, Node<temp::Temp> *to) override;
+
+  int GetDegree(Node<temp::Temp> *n) override;
+  void AddOneDegree(Node<temp::Temp> *n) override;
+  void MinusOneDegree(Node<temp::Temp> *n) override;
+
+  void ClearEdge();
+
+private:
+  temp::TempList *precolored_;
+  std::set<std::pair<Node<temp::Temp>*, Node<temp::Temp>*>> adj_set_;
+  std::unordered_map<Node<temp::Temp>*, int> degree_;
 };
 
 template <typename T> class Node {
   template <typename NodeType> friend class Graph;
+  friend class IGraph;
 
 public:
   // Tell if there is an edge from this node to "n"
@@ -61,8 +94,16 @@ public:
   // Get all the predecessors of node
   NodeList<T> *Pred();
 
+  NodeList<T> *AdjList();
+
   // Tell how many edges lead to or from node
   int Degree();
+
+  int IDegree();
+
+  void AddOneIDegree();
+
+  void MinusOneIDegree();
 
   // Get the "info_" associated with node
   T *NodeInfo();
@@ -90,10 +131,13 @@ private:
 template <typename T> class NodeList {
   friend class Graph<T>;
   friend class Node<T>;
+  friend class IGraph;
+  friend class INode;
 
 public:
   // Make a NodeList
   NodeList<T>() = default;
+  explicit NodeList<T>(Node<T> *n) : node_list_({n}) {}
   ~NodeList<T>() = default;
 
   // Tell if "a" is in the list
@@ -117,6 +161,7 @@ public:
 private:
   std::list<Node<T> *> node_list_{};
 };
+
 
 // Generic creation of Node<tree>
 template <typename T> Node<T> *Graph<T>::NewNode(T *info) {
@@ -169,6 +214,12 @@ template <typename T> int Node<T>::OutDegree() {
 
 template <typename T> int Node<T>::Degree() { return InDegree() + OutDegree(); }
 
+template <typename T> int Node<T>::IDegree() { return my_graph_->GetDegree(this); }
+
+template <typename T> void Node<T>::AddOneIDegree() { my_graph_->AddOneDegree(this); }
+
+template <typename T> void Node<T>::MinusOneIDegree() { my_graph_->MinusOneDegree(this); }
+
 template <typename T> NodeList<T> *Node<T>::Adj() {
   NodeList<T> *adj_list = new NodeList<T>();
   adj_list->CatList(succs_);
@@ -179,6 +230,12 @@ template <typename T> NodeList<T> *Node<T>::Adj() {
 template <typename T> NodeList<T> *Node<T>::Succ() { return succs_; }
 
 template <typename T> NodeList<T> *Node<T>::Pred() { return preds_; }
+
+template <typename T> NodeList<T> *Node<T>::AdjList() { 
+  NodeList<T> * nl = succs_->Union(preds_); 
+  std::cout << "size of adj list of " << *temp::Map::Name()->Look(this->NodeInfo()) << " is " << nl->GetList().size() << std::endl;
+  return nl;
+}
 
 template <typename T> T *Node<T>::NodeInfo() { return info_; }
 
@@ -216,8 +273,10 @@ template <typename T> void NodeList<T>::CatList(NodeList<T> *nl) {
 template <typename T> NodeList<T> *NodeList<T>::Union(NodeList<T> *nl) {
   NodeList<T> *res = new NodeList<T>();
   res->CatList(this);
-  res->CatList(nl);
-  res->node_list_.unique();
+  for (auto temp : nl->GetList()) {
+    if (!res->Contain(temp))
+      res->Append(temp);
+  }
   return res;
 }
 

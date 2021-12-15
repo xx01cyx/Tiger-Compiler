@@ -807,7 +807,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     result_ty = function->result_ ? 
                   tenv->Look(function->result_) : type::VoidTy::Instance();
     formal_tys = function->params_->MakeFormalTyList(tenv, errormsg);
-    // std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
+    std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
 
     std::vector<bool> formal_escapes = std::vector<bool>{true};
     for (auto param : function->params_->GetList()) 

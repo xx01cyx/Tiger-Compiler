@@ -22,15 +22,15 @@ public:
   temp::TempList *CallerSaves() override;
   temp::TempList *CalleeSaves() override;
   temp::TempList *ReturnSink() override;
-  int WordSize() override;
   temp::Temp *FramePointer() override;
   temp::Temp *StackPointer() override;
   temp::Temp *ReturnValue() override;
   temp::Temp *ArithmeticAssistant() override;
-  temp::Temp *ProgramCounter() override;
+  int WordSize() override;
+  int RegCount() override;
 
   enum Register {
-    RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8, R9, R10, R11, R12, R13, R14, R15, RIP, REG_COUNT, 
+    RAX, RBX, RCX, RDX, RSI, RDI, RBP, R8, R9, R10, R11, R12, R13, R14, R15, RSP, REG_COUNT, 
   };
 
   static std::unordered_map<Register, std::string> reg_str;

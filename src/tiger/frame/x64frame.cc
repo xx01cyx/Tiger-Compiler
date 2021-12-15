@@ -16,7 +16,6 @@ std::unordered_map<X64RegManager::Register, std::string> X64RegManager::reg_str 
     { RSI, "%rsi" },
     { RDI, "%rdi" },
     { RBP, "%rbp" },
-    { RSP, "%rsp" },
     { R8, "%r8" },
     { R9, "%r9" },
     { R10, "%r10" },
@@ -25,7 +24,7 @@ std::unordered_map<X64RegManager::Register, std::string> X64RegManager::reg_str 
     { R13, "%r13" },
     { R14, "%r14" },
     { R15, "%r15" },
-    { RIP, "%rip" },
+    { RSP, "%rsp" },
   };
   
 X64RegManager::X64RegManager() {
@@ -39,7 +38,7 @@ X64RegManager::X64RegManager() {
 temp::TempList *X64RegManager::Registers() {
   temp::TempList *temps = new temp::TempList();
   for (int reg = 0; reg < REG_COUNT; ++reg) {
-    if (reg != RIP)
+    // if (reg != RSP)
       temps->Append(regs_.at(reg));
   }
   return temps;
@@ -60,13 +59,12 @@ temp::TempList *X64RegManager::ArgRegs() {
 temp::TempList *X64RegManager::CallerSaves() {
   temp::TempList *temps = new temp::TempList({
     regs_.at(RAX),
-    regs_.at(RSP),
-    // regs_.at(RDI),
-    // regs_.at(RSI),
-    // regs_.at(RDX),
-    // regs_.at(RCX),
-    // regs_.at(R8),
-    // regs_.at(R9),
+    regs_.at(RDI),
+    regs_.at(RSI),
+    regs_.at(RDX),
+    regs_.at(RCX),
+    regs_.at(R8),
+    regs_.at(R9),
     regs_.at(R10),
     regs_.at(R11),
   });
@@ -92,10 +90,6 @@ temp::TempList *X64RegManager::ReturnSink() {
   return temps;
 }
 
-int X64RegManager::WordSize() {
-  return WORD_SIZE;
-}
-
 temp::Temp *X64RegManager::FramePointer() {
   return regs_.at(RBP);
 }
@@ -112,8 +106,12 @@ temp::Temp *X64RegManager::ArithmeticAssistant() {
   return regs_.at(RDX);
 }
 
-temp::Temp *X64RegManager::ProgramCounter() {
-  return regs_.at(RIP);
+int X64RegManager::WordSize() {
+  return WORD_SIZE;
+}
+
+int X64RegManager::RegCount() {
+  return REG_COUNT;
 }
 
 class InFrameAccess : public Access {
@@ -121,7 +119,13 @@ public:
   int offset;
 
   explicit InFrameAccess(int offset) : offset(offset) {}
-  /* TODO: Put your lab5 code here */
+  
+  std::string MunchAccess(Frame *frame) override {
+    std::stringstream ss;
+    ss << "(" << frame->frame_size_->Name() << "-" << offset << ")("
+       << *reg_manager->temp_map_->Look(reg_manager->StackPointer()) << ")";
+    return ss.str();
+  }
 };
 
 
@@ -130,7 +134,10 @@ public:
   temp::Temp *reg;
 
   explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
-  /* TODO: Put your lab5 code here */
+
+  std::string MunchAccess(Frame *frame) override {
+    return *temp::Map::Name()->Look(reg);
+  }
 };
 
 class X64Frame : public Frame {
@@ -141,7 +148,6 @@ public:
   }
 
   Access *AllocLocal(bool escape) override;
-  // tree::Exp *FramePointer(temp::Temp *fp_reg) const override;
   tree::Exp *FrameAddress() const override;
   int WordSize() const override;
   std::string GetLabel() const override;
@@ -160,10 +166,6 @@ Access *X64Frame::AllocLocal(bool escape) {
   local_access_.push_back(access);
   return access;
 }
-
-// tree::Exp *X64Frame::FramePointer(temp::Temp *fp_reg) const {
-//   return new 
-// }
 
 tree::Exp *X64Frame::FrameAddress() const {
   return new tree::BinopExp(tree::PLUS_OP, 
@@ -191,21 +193,12 @@ Frame *NewFrame(temp::Label *name, std::vector<bool> formals) {
   tree::TempExp *fp_exp = new tree::TempExp(temp::TempFactory::NewTemp());
   frame->view_shift = new tree::MoveStm(fp_exp, frame->FrameAddress());
 
-  // Static link
-
-  // frame->formal_access_.push_back(new InFrameAccess(frame_offset));
-  // frame->view_shift = new tree::MoveStm(new tree::MemExp(new tree::BinopExp(tree::MINUS_OP, 
-  //                       fp_exp, new tree::ConstExp(frame_offset))), 
-  //                         new tree::TempExp(reg_manager->ArgRegs()->NthTemp(0)));
-  // frame_offset += frame->WordSize();
-  // frame->local_count_ = 1;
-
-  // Other formals
-
   tree::Exp *dst_exp;
   tree::Stm *single_view_shift;
   int arg_reg_count = reg_manager->ArgRegs()->GetList().size();
   tree::Exp *fp_exp_copy; 
+
+  // Formals
 
   if (formals.size() > arg_reg_count) {
     fp_exp_copy = new tree::TempExp(temp::TempFactory::NewTemp());
@@ -237,7 +230,7 @@ Frame *NewFrame(temp::Label *name, std::vector<bool> formals) {
   }
 
   // Save and restore callee-save registers 
-  // Now save in temporart registers (spilled by register allocator)
+  // Now save in temporary registers (spilled by register allocator)
 
   temp::TempList *callee_saves = reg_manager->CalleeSaves();
   temp::Temp *store_reg;
@@ -265,12 +258,6 @@ Frame *NewFrame(temp::Label *name, std::vector<bool> formals) {
 tree::Exp *AccessCurrentExp(Access *acc, Frame *frame) {
   if (typeid(*acc) == typeid(InFrameAccess)) {
     InFrameAccess *frame_acc = static_cast<InFrameAccess *>(acc);
-
-    // leaq fs(%rsp), r
-    // tree::Exp *fp_exp = new tree::TempExp(temp::TempFactory::NewTemp());
-    // tree::Stm *gen_fp = new tree::MoveStm(fp_exp, new tree::BinopExp(tree::PLUS_OP, 
-    //                       new tree::TempExp(reg_manager->StackPointer()),
-    //                       new tree::NameExp(frame->frame_size_)));
 
     // access via temporary frame pointer
     return new tree::MemExp(new tree::BinopExp(tree::MINUS_OP, 

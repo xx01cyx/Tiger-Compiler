@@ -13,6 +13,8 @@
 
 namespace frame {
 
+class Frame;
+
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
@@ -58,6 +60,8 @@ public:
    */
   [[nodiscard]] virtual int WordSize() = 0;
 
+  [[nodiscard]] virtual int RegCount() = 0;
+
   [[nodiscard]] virtual temp::Temp *FramePointer() = 0;
 
   [[nodiscard]] virtual temp::Temp *StackPointer() = 0;
@@ -65,8 +69,6 @@ public:
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
   [[nodiscard]] virtual temp::Temp *ArithmeticAssistant() = 0;
-
-  [[nodiscard]] virtual temp::Temp *ProgramCounter() = 0;
 
   temp::Map *temp_map_;
 
@@ -76,10 +78,8 @@ protected:
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
-  
+  virtual std::string MunchAccess(Frame *frame) = 0;
   virtual ~Access() = default;
-  
 };
 
 class Frame {
@@ -93,7 +93,6 @@ protected:
 
 public:
   virtual Access *AllocLocal(bool escape) = 0;
-  // virtual tree::Exp *FramePointer(temp::Temp *fp_reg) const = 0;
   virtual tree::Exp *FrameAddress() const = 0;
   virtual int WordSize() const = 0;
   virtual std::string GetLabel() const = 0;

@@ -37,6 +37,8 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   if (phase != Proc)
     return;
 
+  std::cout << "OutputAssem for " << frame_->GetLabel() << std::endl;
+
   TigerLog("-------====IR tree=====-----\n");
   TigerLog(body_);
 
