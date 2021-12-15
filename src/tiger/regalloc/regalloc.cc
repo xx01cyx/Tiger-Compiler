@@ -12,11 +12,6 @@ RegAllocator::RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> 
   : frame_(frame), assem_instr_(std::move(assem_instr)) {
 
   global_map_ = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
-  temp_map_ = temp::Map::Name();
-
-  flow_graph_factory_ = new fg::FlowGraphFactory();
-  live_graph_factory_ = new live::LiveGraphFactory();
-  live_graph_factory_->BuildIGraph(assem_instr_.get()->GetInstrList());
 
   precolored_ = new live::INodeList();
   
@@ -36,60 +31,32 @@ RegAllocator::RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> 
   worklist_moves_ = new live::MoveList();
   active_moves_ = new live::MoveList();
 
-  auto tn_map = live_graph_factory_->GetTempNodeMap();
-  int c = 0;
-  for (temp::Temp *reg : reg_manager->Registers()->GetList()) {
-    live::INode *node = tn_map->Look(reg);
-    precolored_->Append(node);
-    color_[node] = c++;
-  }
-
-  InitAlias();
-
-  initial_ = live_graph_factory_->GetLiveGraph().interf_graph->Nodes()->Diff(precolored_);
-  std::cout << "size of initial_ is " << initial_->GetList().size() << std::endl;
-
 }
 
 void RegAllocator::RegAlloc() {
 
-  std::cout << std::endl << "========RegAlloc========" << std::endl;
+  flow_graph_factory_ = new fg::FlowGraphFactory();
+  live_graph_factory_ = new live::LiveGraphFactory();
 
-  // live_graph_factory_ = new live::LiveGraphFactory();
-  // live_graph_factory_->BuildIGraph(assem_instr_.get()->GetInstrList());
+  // Add all inodes.
+  live_graph_factory_->BuildIGraph(assem_instr_.get()->GetInstrList());
 
+  // Construct flow graph.
   flow_graph_factory_->AssemFlowGraph(assem_instr_.get()->GetInstrList());
+
+  // Analyze liveness.
   live_graph_factory_->Liveness(flow_graph_factory_->GetFlowGraph(), &worklist_moves_);
 
-  move_count = worklist_moves_->GetList().size();
-  // initial_ = initial_->Union(live_graph_factory_->GetLiveGraph().interf_graph->Nodes()->Diff(precolored_));
+  // Do other initializations according to inodes.
+  InitColor();
+  InitAlias();
+  initial_ = live_graph_factory_->GetLiveGraph().interf_graph->Nodes()->Diff(precolored_);
 
   MakeWorkList();
 
   do {
-
-    std::cout << "simplify worklist contents: ";
-    for (live::INode *t : simplify_worklist_->GetList()) {
-      std::cout << *global_map_->Look(t->NodeInfo()) << '-' << t->IDegree() << ' ';
-    }
-    std::cout << std::endl;
-
-    std::cout << "freeze worklist contents: ";
-    for (live::INode *t : freeze_worklist_->GetList()) {
-      std::cout << *global_map_->Look(t->NodeInfo()) << '-' << t->IDegree() << ' ';
-    }
-    std::cout << std::endl;
-
-    std::cout << "spill worklist contents: ";
-    for (live::INode *t : spill_worklist_->GetList()) {
-      std::cout << *global_map_->Look(t->NodeInfo()) << '-' << t->IDegree() << ' ';
-    }
-    std::cout << std::endl;
-
-    PrintMoveList();
-    PrintNodeList();
-
-    std::cout << std::endl << "### ";
+    // PrintMoveList();
+    // PrintNodeList();
 
     if (!simplify_worklist_->GetList().empty())
       Simplify();
@@ -128,23 +95,18 @@ void RegAllocator::RegAlloc() {
       }
     }
 
-    // for (auto it : delete_moves)
-    //   instr_list->Erase(it);
+    for (auto it : delete_moves)
+      instr_list->Erase(it);
   }
     
 }
 
 std::unique_ptr<Result> RegAllocator::TransferResult() {
-
-  std::cout << "TransferResult" << std::endl;
-
-  // temp::Map *coloring = temp::Map::LayerMap(temp::Map::Empty(), temp::Map::Name());
   temp::Map *coloring = temp::Map::Empty();
   for (auto node_color : color_) {
     temp::Temp *reg = node_color.first->NodeInfo();
     int c = node_color.second;
     std::string *str = global_map_->Look(reg_manager->Registers()->NthTemp(c));
-    std::cout << *global_map_->Look(reg) << ' ' << *str << std::endl;
     coloring->Enter(reg, str);
   }
   result_ = std::make_unique<Result>(coloring, assem_instr_.get()->GetInstrList());
@@ -162,24 +124,14 @@ void RegAllocator::MakeWorkList() {
     else
       simplify_worklist_ = simplify_worklist_->Union(single_n);
   }
-  node_count = initial_->GetList().size();
-  initial_->Clear();
 }
 
 live::INodeList *RegAllocator::Adjacent(live::INode *n) {
-  live::INodeList *nl = n->AdjList()->Diff(select_stack_->Union(coalesced_nodes_));
-  std::cout << "Adjacent of " << *global_map_->Look(n->NodeInfo()) << ": ";
-  for (live::INode *m : nl->GetList()) {
-    std::cout << *global_map_->Look(m->NodeInfo()) << '-' << m->IDegree() << ' ';
-  }
-  std::cout << std::endl;
-  return nl;
+  return n->AdjList()->Diff(select_stack_->Union(coalesced_nodes_));
 }
 
 live::MoveList *RegAllocator::NodeMoves(live::INode *n) {
   live::MoveList *node_moves = live_graph_factory_->GetLiveGraph().move_list->Look(n);
-  // std::cout << "size of move list of " << *temp::Map::Name()->Look(n->NodeInfo()) 
-  //           << " is " << node_moves->GetList().size() << std::endl;
   return node_moves->Intersect(active_moves_->Union(worklist_moves_));
 }
 
@@ -190,8 +142,6 @@ bool RegAllocator::MoveRelated(live::INode *n) {
 
 void RegAllocator::Simplify() {
   live::INode *n = simplify_worklist_->GetList().front();
-  std::cout << "Simplify " << *global_map_->Look(n->NodeInfo())
-            << " with a degree of " << n->IDegree() << std::endl;
   simplify_worklist_->DeleteNode(n);
   select_stack_->Prepend(n);
   live::INodeList *adj_nodes = Adjacent(n);
@@ -223,15 +173,13 @@ void RegAllocator::EnableMoves(live::INodeList *nodes) {
         live::MoveList *single_move = new live::MoveList(m);
         active_moves_ = active_moves_->Diff(single_move);
         worklist_moves_ = worklist_moves_->Union(single_move);
-        PrintMoveList();
+        // PrintMoveList();
       }
     }
   }
 }
 
 void RegAllocator::Coalesce() {
-
-  std::cout << "Coalesce" << std::endl;
 
   live::Move m = worklist_moves_->GetList().front();
   live::MoveList *single_move = new live::MoveList(m);
@@ -250,34 +198,24 @@ void RegAllocator::Coalesce() {
   worklist_moves_ = worklist_moves_->Diff(single_move);
 
   if (u == v) {
-    std::cout << "$$$ coalesce move " << *global_map_->Look(m.first->NodeInfo()) 
-              << "->" << *global_map_->Look(m.second->NodeInfo()) 
-              << " since src and dst are same" << std::endl;
     coalesced_moves_ = coalesced_moves_->Union(single_move);
     AddWorkList(u);
 
   } else if (IsPrecolored(v) || AreAdj(u, v)) {
-    std::cout << "$$$ constrain move " << *global_map_->Look(m.first->NodeInfo()) 
-              << "->" << *global_map_->Look(m.second->NodeInfo()) << std::endl;
     constrained_moves_ = constrained_moves_->Union(single_move);
     AddWorkList(u);
     AddWorkList(v);
 
   } else if (George(u, v) || Briggs(u, v)) {
-    std::cout << "$$$ coalesce move " << *global_map_->Look(m.first->NodeInfo()) 
-              << "->" << *global_map_->Look(m.second->NodeInfo()) 
-              << " since the move satisfy George or Briggs" << std::endl;
     coalesced_moves_ = coalesced_moves_->Union(single_move);
     Combine(u, v);
     AddWorkList(u);
 
   } else {
-    std::cout << "$$$ active move " << *global_map_->Look(m.first->NodeInfo()) 
-              << "->" << *global_map_->Look(m.second->NodeInfo());
     active_moves_ = active_moves_->Union(single_move);
   }
 
-  PrintMoveList();
+  // PrintMoveList();
 
 }
 
@@ -319,7 +257,7 @@ void RegAllocator::Combine(live::INode *u, live::INode *v) {
   
   coalesced_nodes_ = coalesced_nodes_->Union(single_v);
   alias_[v] = u;
-  PrintAlias();
+  // PrintAlias();
 
   live::MoveList *u_moves = live_graph_factory_->GetLiveGraph().move_list->Look(u);
   live::MoveList *v_moves = live_graph_factory_->GetLiveGraph().move_list->Look(v);
@@ -370,9 +308,6 @@ bool RegAllocator::AreAdj(live::INode *u, live::INode *v) {
 }
 
 void RegAllocator::Freeze() {
-
-  std::cout << "Freeze" << std::endl;
-
   live::INode *u = freeze_worklist_->GetList().front();
   live::INodeList *single_u = new live::INodeList(u);
   freeze_worklist_ = freeze_worklist_->Diff(single_u);
@@ -394,7 +329,7 @@ void RegAllocator::FreezeMoves(live::INode *u) {
     active_moves_ = active_moves_->Diff(single_m);
     frozen_moves_ = frozen_moves_->Union(single_m);
 
-    PrintMoveList();
+    // PrintMoveList();
 
     if (NodeMoves(v)->GetList().empty() && v->IDegree() < reg_manager->RegCount()) {
       live::INodeList *single_v = new live::INodeList(v);
@@ -405,11 +340,8 @@ void RegAllocator::FreezeMoves(live::INode *u) {
 }
 
 void RegAllocator::SelectSpill() {
-
-  // FIXME: heuristic algorithm
-  live::INode *m = spill_worklist_->GetList().front();
-
-  std::cout << "SelectSpill " << *global_map_->Look(m->NodeInfo()) << std::endl;
+  assert(!spill_worklist_->GetList().empty());
+  live::INode *m = HeuristicSelect();
 
   live::INodeList *single_m = new live::INodeList(m);
   spill_worklist_ = spill_worklist_->Diff(single_m);
@@ -417,15 +349,43 @@ void RegAllocator::SelectSpill() {
   FreezeMoves(m);
 }
 
-void RegAllocator::AssignColors() {
+/* Implement furthest-next-use algorithm to heuristically find a node to spill */
+live::INode *RegAllocator::HeuristicSelect() {
+  live::INode *res;
+  int max_distance = 0;
+  assem::InstrList *instr_list = (*assem_instr_).GetInstrList();
 
-  std::cout << "AssignColors" << std::endl;
+  for (live::INode *n : spill_worklist_->GetList()) {
+    int pos = 0;
+    int start;
+    int distance = -1;
+    for (assem::Instr *instr : instr_list->GetList()) {
+      if (instr->Def()->Contain(n->NodeInfo())) {
+        start = pos;
+      }
+      if (instr->Use()->Contain(n->NodeInfo())) {
+        distance = pos - start;
+        if (distance > max_distance) {
+          max_distance = distance;
+          res = n;
+        }
+      }
+      pos++;
+    }
+
+    // Defined but never used
+    if (distance == -1)
+      return n;
+  }
+
+  return res;
+}
+
+void RegAllocator::AssignColors() {
 
   while (!select_stack_->GetList().empty()) {
     live::INode *n = select_stack_->GetList().front();
     select_stack_->DeleteNode(n);
-
-    std::cout << "pop " << *global_map_->Look(n->NodeInfo()) << " out of stack" << std::endl;
 
     std::set<int> ok_colors = std::set<int>();
     for (int c = 0; c < reg_manager->RegCount(); ++c)
@@ -434,42 +394,27 @@ void RegAllocator::AssignColors() {
     live::INodeList *adj_list = n->AdjList();
     for (live::INode *w : adj_list->GetList()) {
       live::INode *alias = GetAlias(w);
-      if (colored_nodes_->Union(precolored_)->Contain(alias)) {
-        // std::cout << "color " << color_.at(GetAlias(w)) << " is used by "
-        //           << *temp::Map::Name()->Look(w->NodeInfo()) << ", cannot assign to "
-        //           << *temp::Map::Name()->Look(n->NodeInfo()) << std::endl;
+      if (colored_nodes_->Union(precolored_)->Contain(alias))
         ok_colors.erase(color_.at(alias));
-      }
     }
 
     live::INodeList *single_n = new live::INodeList(n);
     if (ok_colors.empty()) {
       spilled_nodes_ = spilled_nodes_->Union(single_n);
-      std::cout << *global_map_->Look(n->NodeInfo()) << " is spilled to memory" << std::endl;
     } else {
       colored_nodes_ = colored_nodes_->Union(single_n);
       int c = *(ok_colors.begin());
       color_[n] = c;
-      std::cout << "color " << c << " is selected for " << *global_map_->Look(n->NodeInfo()) << std::endl;
     }
   }
 
-  for (live::INode *n : coalesced_nodes_->GetList()) {
-    if (!color_.count(GetAlias(n))) {
-      std::cout << "error! alias of " << *global_map_->Look(n->NodeInfo()) << " is " 
-                << *global_map_->Look(GetAlias(n)->NodeInfo()) << ", which has no color" << std::endl;
-    } else {
-      std::cout << "color " << color_[n] << " is assigned for " << *global_map_->Look(n->NodeInfo()) << std::endl;
-      color_[n] = color_[GetAlias(n)];
-    }
-  }
+  for (live::INode *n : coalesced_nodes_->GetList())
+    color_[n] = color_[GetAlias(n)];
+
 }
 
 void RegAllocator::RewriteProgram() {
 
-  std::cout << "RewriteProgram" << std::endl;
-
-  live::INodeList *new_temps = new live::INodeList();
   live::NodeInstrMap *node_instr_map = live_graph_factory_->GetNodeInstrMap().get();
   
   for (live::INode *v : spilled_nodes_->GetList()) { 
@@ -477,39 +422,16 @@ void RegAllocator::RewriteProgram() {
     frame::Access *acc = frame_->AllocLocal(true);
     std::string mem_pos = acc->MunchAccess(frame_);
 
-    std::cout << "allocate " << mem_pos << " for "
-              << *global_map_->Look(v->NodeInfo()) << std::endl;
-
     // Get all instructions regarding the spilled temporary
-    // auto node_instrs = node_instr_map->equal_range(v);
     auto node_instrs = node_instr_map->at(v);
 
-    // for (auto node_instr_it = node_instrs.first;
-    //      node_instr_it != node_instrs.second; node_instr_it++) {
     for (auto instr_it = node_instrs->begin(); instr_it != node_instrs->end(); instr_it++) {
-
-      std::cout << node_instrs->size() << " instructions regarding " 
-                << *global_map_->Look(v->NodeInfo()) << std::endl;
-
       std::stringstream instr_ss;
-      // live::INode *n = node_instr_it->first;
-      // auto instr_pos = node_instr_it->second;
       auto instr_pos = *instr_it;
       assem::Instr *instr = *instr_pos;
 
-      std::cout << "instrution regarding " << *global_map_->Look(v->NodeInfo()) << ": ";
-      instr->Print(stdout, global_map_);
-
       // Create a new temporary for each definition and use
       temp::Temp *new_reg = temp::TempFactory::NewTemp();
-      live::INode *new_node = live_graph_factory_->GetLiveGraph().interf_graph->NewNode(new_reg);
-      live_graph_factory_->GetLiveGraph().move_list->Enter(new_node, new live::MoveList());
-      live_graph_factory_->GetTempNodeMap()->Enter(new_reg, new_node);
-      // live_graph_factory_->GetNodeInstrMap()->insert(std::make_pair(new_node, instr_pos));
-      // node_instr_map.get()->at(new_node) = new std::vector<live::InstrPos>{instr_pos};
-      node_instr_map->insert(std::make_pair(new_node, new std::vector<live::InstrPos>{instr_pos}));
-      new_temps->Append(new_node);
-      alias_[new_node] = new_node;
 
       // The spilled temporary is a use
       if (instr->Use()->Contain(v->NodeInfo())) {
@@ -527,20 +449,14 @@ void RegAllocator::RewriteProgram() {
         instr_ss << "movq " << mem_pos << ", `d0";
         assem::Instr *fetch_instr = new assem::OperInstr(instr_ss.str(), 
                                       new temp::TempList(new_reg), 
-                                      nullptr, nullptr);
+                                      new temp::TempList(reg_manager->StackPointer()), 
+                                      nullptr);
         assem_instr_.get()->GetInstrList()->Insert(instr_pos, fetch_instr);
 
-        // Add the new instruction to the node-instruction map
-        // live_graph_factory_->GetNodeInstrMap()->insert(std::make_pair(new_node, --instr_pos));
-        node_instr_map->at(new_node)->push_back(--instr_pos);
-        
         // Restore instruction position iterator
-        instr_pos++;
+        // instr_pos++;
 
         instr_ss.str("");
-
-        std::cout << "insert fetch: ";  
-        fetch_instr->Print(stdout, global_map_);
       }
 
       // The spilled temporary is a definition
@@ -557,48 +473,47 @@ void RegAllocator::RewriteProgram() {
 
         // Insert a store after definition of the new temporary
         instr_ss << "movq `s0, " << mem_pos;
-        assem::Instr *store_instr = new assem::OperInstr(instr_ss.str(), nullptr, 
-                                      new temp::TempList(new_reg), nullptr);
+        assem::Instr *store_instr = new assem::OperInstr(instr_ss.str(), 
+                                      nullptr, 
+                                      new temp::TempList({new_reg, reg_manager->StackPointer()}), 
+                                      nullptr);
         assem_instr_.get()->GetInstrList()->Insert(++instr_pos, store_instr);
-
-        // Add the new instruction to the node-instruction map
-        // live_graph_factory_->GetNodeInstrMap()->insert(std::make_pair(new_node, --instr_pos));
-        node_instr_map->at(new_node)->push_back(--instr_pos);
-        
-        std::cout << "insert store: ";  
-        store_instr->Print(stdout, global_map_);
       }
     }
   }
 
-  initial_ = colored_nodes_->Union(coalesced_nodes_->Union(new_temps));
+  spilled_nodes_->Clear();
+  colored_nodes_->Clear();
+  coalesced_nodes_->Clear();
 
-  int cur_node_count = spilled_nodes_->GetList().size()
-                      + coalesced_nodes_->GetList().size()
-                      + colored_nodes_->GetList().size(); 
-  if (cur_node_count != node_count) {
-    std::cout << "another error!!! node count should be " << node_count 
-              << " but is " << cur_node_count << std::endl;   
+  coalesced_moves_->Clear();
+  constrained_moves_->Clear();
+  frozen_moves_->Clear();
+  worklist_moves_->Clear();
+  active_moves_->Clear();
+
+  color_.clear();
+  alias_.clear();
+
+  delete flow_graph_factory_;
+  delete live_graph_factory_;
+
+}
+
+void RegAllocator::InitColor() {
+  auto tn_map = live_graph_factory_->GetTempNodeMap();
+  int c = 0;
+  for (temp::Temp *reg : reg_manager->Registers()->GetList()) {
+    live::INode *node = tn_map->Look(reg);
+    precolored_->Append(node);
+    color_[node] = c++;
   }
+}
 
-  spilled_nodes_ = new live::INodeList();
-  colored_nodes_ = new live::INodeList();
-  coalesced_nodes_ = new live::INodeList();
-
-  coalesced_moves_ = new live::MoveList();
-  constrained_moves_ = new live::MoveList();
-  frozen_moves_ = new live::MoveList();
-  worklist_moves_ = new live::MoveList();
-  active_moves_ = new live::MoveList();
-
-  InitColor();
-  InitAlias();
-
-  // Output the new instruction list
-  for (assem::Instr *instr : assem_instr_.get()->GetInstrList()->GetList()) {
-    instr->Print(stdout, global_map_);
-  }
-
+void RegAllocator::InitAlias() {
+  live::INodeList *all_nodes = live_graph_factory_->GetLiveGraph().interf_graph->Nodes();
+  for (live::INode *n : all_nodes->GetList()) 
+    alias_[n] = n;
 }
 
 void RegAllocator::PrintMoveList() {
@@ -637,13 +552,6 @@ void RegAllocator::PrintMoveList() {
               << *global_map_->Look(m.second->NodeInfo()) << " ";
   }
   std::cout << std::endl;
-
-
-  if (coalesced_moves_->GetList().size() + constrained_moves_->GetList().size()
-      + frozen_moves_->GetList().size() + worklist_moves_->GetList().size()
-      + active_moves_->GetList().size() != move_count) {
-    std::cout << "error!!!" << std::endl;
-  }
 }
 
 void RegAllocator::PrintAlias() {
@@ -679,23 +587,6 @@ void RegAllocator::PrintNodeList() {
     std::cout << *global_map_->Look(n->NodeInfo()) << ' ';
   }
   std::cout << std::endl;
-}
-
-void RegAllocator::InitColor() {
-  color_.clear();
-  auto tn_map = live_graph_factory_->GetTempNodeMap();
-  int c = 0;
-  for (temp::Temp *reg : reg_manager->Registers()->GetList()) {
-    live::INode *node = tn_map->Look(reg);
-    color_[node] = c++;
-  }
-}
-
-void RegAllocator::InitAlias() {
-  alias_.clear();
-  live::INodeList *all_nodes = live_graph_factory_->GetLiveGraph().interf_graph->Nodes();
-  for (live::INode *n : all_nodes->GetList()) 
-    alias_[n] = n;
 }
 
 

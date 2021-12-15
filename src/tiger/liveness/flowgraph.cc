@@ -4,8 +4,6 @@ namespace fg {
 
 void FlowGraphFactory::AssemFlowGraph(assem::InstrList *instr_list) {
   /* TODO: Put your lab6 code here */
-  delete flowgraph_;
-  flowgraph_ = new FGraph();
 
   // Construct the graph by adding all instructions as nodes without adding edges.
   for (assem::Instr *instr : instr_list->GetList()) {
@@ -29,27 +27,21 @@ void FlowGraphFactory::AssemFlowGraph(assem::InstrList *instr_list) {
       // Jump instruction jumps to a label and may fall through
       if (oper_instr->jumps_ != nullptr) {
         for (temp::Label *label : *oper_instr->jumps_->labels_) {
-          // std::cout << "jump to ";
-          // label_map_.get()->Look(label)->NodeInfo()->Print(stdout, temp::Map::Name());
           flowgraph_->AddEdge(node, label_map_.get()->Look(label)); 
         }
 
         // Conditional jump falls through
-        if (oper_instr->assem_.find("jmp") == std::string::npos) {
-          // std::cout << "fall through" << std::endl;
+        if (oper_instr->assem_.find("jmp") == std::string::npos)
           flowgraph_->AddEdge(node, *(++node_it));
-        }
         else
           ++node_it; 
 
       // Other instructions just fall through
       } else {
-        // std::cout << "fall through" << std::endl;
         flowgraph_->AddEdge(node, *(++node_it));
       }
 
     } else {
-      // std::cout << "fall through" << std::endl;
       flowgraph_->AddEdge(node, *(++node_it));
     }
   }

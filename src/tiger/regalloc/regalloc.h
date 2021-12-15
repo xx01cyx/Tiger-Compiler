@@ -65,10 +65,7 @@ private:
   std::unique_ptr<Result> result_;
 
   // debug
-  int move_count;
-  int node_count;
   temp::Map *global_map_;
-  temp::Map *temp_map_;
 
   void InitColor();
   void InitAlias();
@@ -97,8 +94,8 @@ private:
   void FreezeMoves(live::INode *u);
 
   void SelectSpill();
+  live::INode *HeuristicSelect();
   void AssignColors();
-  
   void RewriteProgram();
 
   void PrintMoveList();

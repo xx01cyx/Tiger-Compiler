@@ -15,7 +15,6 @@ std::unordered_map<X64RegManager::Register, std::string> X64RegManager::reg_str 
     { RDX, "%rdx" },
     { RSI, "%rsi" },
     { RDI, "%rdi" },
-    { RBP, "%rbp" },
     { R8, "%r8" },
     { R9, "%r9" },
     { R10, "%r10" },
@@ -24,6 +23,7 @@ std::unordered_map<X64RegManager::Register, std::string> X64RegManager::reg_str 
     { R13, "%r13" },
     { R14, "%r14" },
     { R15, "%r15" },
+    { RBP, "%rbp" },
     { RSP, "%rsp" },
   };
   
@@ -38,7 +38,6 @@ X64RegManager::X64RegManager() {
 temp::TempList *X64RegManager::Registers() {
   temp::TempList *temps = new temp::TempList();
   for (int reg = 0; reg < REG_COUNT; ++reg) {
-    // if (reg != RSP)
       temps->Append(regs_.at(reg));
   }
   return temps;

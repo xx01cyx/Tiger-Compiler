@@ -34,6 +34,7 @@ public:
   static void Show(FILE *out, NodeList<T> *p,
                    std::function<void(T *)> show_info);
 
+  virtual void SetDegree(Node<temp::Temp> *n, int d) {}
   virtual int GetDegree(Node<T> *n) { return n->Degree(); }
   virtual void AddOneDegree(Node<T> *n) {}
   virtual void MinusOneDegree(Node<T> *n) {}
@@ -56,6 +57,7 @@ public:
   Node<temp::Temp> *NewNode(temp::Temp *info) override;
   void AddEdge(Node<temp::Temp> *from, Node<temp::Temp> *to) override;
 
+  void SetDegree(Node<temp::Temp> *n, int d) override;
   int GetDegree(Node<temp::Temp> *n) override;
   void AddOneDegree(Node<temp::Temp> *n) override;
   void MinusOneDegree(Node<temp::Temp> *n) override;
@@ -232,9 +234,7 @@ template <typename T> NodeList<T> *Node<T>::Succ() { return succs_; }
 template <typename T> NodeList<T> *Node<T>::Pred() { return preds_; }
 
 template <typename T> NodeList<T> *Node<T>::AdjList() { 
-  NodeList<T> * nl = succs_->Union(preds_); 
-  std::cout << "size of adj list of " << *temp::Map::Name()->Look(this->NodeInfo()) << " is " << nl->GetList().size() << std::endl;
-  return nl;
+  return succs_->Union(preds_); 
 }
 
 template <typename T> T *Node<T>::NodeInfo() { return info_; }

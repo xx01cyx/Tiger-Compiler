@@ -129,7 +129,6 @@ public:
   }
 };
 
-// FIXME: formals?
 void ProcEntryExit(Level *level, Exp *body) {
   frame::ProcFrag *frag = new frame::ProcFrag(body->UnNx(), level->frame_);
   frags->PushBack(frag);
@@ -141,7 +140,8 @@ void ProgTr::Translate() {
   frame::Frame *new_frame = frame::NewFrame(main_label, std::vector<bool>());
   Level *main_level = new Level(new_frame, outermost_level_.get());
   tr::ExpAndTy *tree_expty = absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level, nullptr, errormsg_.get());
-  ProcEntryExit(main_level, tree_expty->exp_);
+  tree::Stm *main_stm = frame::ProcEntryExit1(new_frame, tree_expty->exp_->UnNx());
+  ProcEntryExit(main_level, new NxExp(main_stm));
 }
 
 } // namespace tr
@@ -807,7 +807,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     result_ty = function->result_ ? 
                   tenv->Look(function->result_) : type::VoidTy::Instance();
     formal_tys = function->params_->MakeFormalTyList(tenv, errormsg);
-    std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
+    // std::cout << "function name: " << function->name_->Name() << ", label: " << fun_label->Name() << std::endl;
 
     std::vector<bool> formal_escapes = std::vector<bool>{true};
     for (auto param : function->params_->GetList()) 

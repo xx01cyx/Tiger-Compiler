@@ -28,6 +28,7 @@ public:
   void Append(INodePtr src, INodePtr dst) { move_list_.emplace_back(src, dst); }
   bool Contain(INodePtr src, INodePtr dst);
   void Delete(INodePtr src, INodePtr dst);
+  void Clear() { move_list_.clear(); }
   void Prepend(INodePtr src, INodePtr dst) {
     move_list_.emplace_front(src, dst);
   }

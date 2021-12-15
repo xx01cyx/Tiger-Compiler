@@ -1,6 +1,7 @@
 #include "tiger/liveness/liveness.h"
 
 #include <iostream>
+#include <limits>
 
 extern frame::RegManager *reg_manager;
 
@@ -19,8 +20,6 @@ Node<temp::Temp> *IGraph::NewNode(temp::Temp *info) {
 
   degree_[n] = 0;
 
-  // std::cout << "new node in interference graph" << std::endl;
-
   return n;
 }
 
@@ -35,10 +34,6 @@ void IGraph::AddEdge(Node<temp::Temp> *from, Node<temp::Temp> *to) {
   assert(to->my_graph_ == this);
 
   if (!IAdj(from, to) && from != to) {
-    temp::Map *global_map = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
-    std::cout << "add edge between " << *global_map->Look(from->NodeInfo())
-              << " and " << *global_map->Look(to->NodeInfo()) << std::endl;
-
     // Add to adjacent set
     adj_set_.emplace(from, to);
     adj_set_.emplace(to, from);
@@ -54,22 +49,16 @@ void IGraph::AddEdge(Node<temp::Temp> *from, Node<temp::Temp> *to) {
       to->preds_ = to->preds_->Union(single_from);
       to->AddOneIDegree();
     }
-
-    // if (from->AdjList()->GetList().size() != from->IDegree()) {
-    //   std::cout << "size not match!!! " << "size of adj list of " << *global_map->Look(from->NodeInfo()) 
-    //             << " is " << from->AdjList()->GetList().size() << ", degree is " << from->IDegree() << std::endl;
-    //   std::cout << "adj list: ";
-    //   for (Node<temp::Temp> *n : from->AdjList()->GetList()) {
-    //     std::cout << *global_map->Look(n->NodeInfo()) << ' ';
-    //   }
-    //   std::cout << std::endl;
-    // }
   } 
+}
+
+void IGraph::SetDegree(Node<temp::Temp> *n, int d) {
+  assert(n->my_graph_ == this);
+  degree_.at(n) = d;
 }
 
 int IGraph::GetDegree(Node<temp::Temp> *n) {
   assert(n->my_graph_ == this);
-  // std::cout << "get interference degree, degree is " << degree_.at(n) << std::endl;
   return degree_.at(n);
 }
 
@@ -85,18 +74,11 @@ void IGraph::ClearEdge() {
 void IGraph::AddOneDegree(Node<temp::Temp> *n) {
   assert(n->my_graph_ == this);
   degree_.at(n)++;
-  temp::Map *global_map = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
-  std::cout << "add one interference degree for " << *global_map->Look(n->NodeInfo())
-            << ", degree is " << degree_.at(n) << std::endl;
 }
 
 void IGraph::MinusOneDegree(Node<temp::Temp> *n) {
   assert(n->my_graph_ == this);
   degree_.at(n)--;
-  temp::Map *global_map = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
-  std::cout << "minus one interference degree for " << *global_map->Look(n->NodeInfo())
-            << ", degree is " << degree_.at(n) << std::endl;
-  assert(degree_.at(n) >= 0);
 }
 
 } // namespace graph
@@ -209,7 +191,6 @@ MoveList *MoveList::Diff(MoveList *list) {
 
 void LiveGraphFactory::LiveMap(fg::FGraphPtr flowgraph) {
   /* TODO: Put your lab6 code here */
-  temp::Map *global_map = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
 
   for (fg::FNode *fnode : flowgraph->Nodes()->GetList()) {
     in_.get()->Enter(fnode, new temp::TempList());
@@ -221,23 +202,10 @@ void LiveGraphFactory::LiveMap(fg::FGraphPtr flowgraph) {
 
   while (finished != flowgraph->nodecount_) {
 
-    std::cout << "ROUND " << ++i << std::endl;
-    
     finished = 0;
 
     for (auto fnode_it = flowgraph->Nodes()->GetList().rbegin();
          fnode_it != flowgraph->Nodes()->GetList().rend(); fnode_it++) {
-          
-          (*fnode_it)->NodeInfo()->Print(stdout, temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name()));
-          std::cout << "def: ";
-          for (temp::Temp *t : (*fnode_it)->NodeInfo()->Def()->GetList())
-            std::cout << *global_map->Look(t) << ' ';
-          std::cout << std::endl;
-          std::cout << "use: ";
-          for (temp::Temp *t : (*fnode_it)->NodeInfo()->Use()->GetList())
-            std::cout << *global_map->Look(t) << ' ';
-          std::cout << std::endl;
-
           // Compute out 
           temp::TempList *out_n = new temp::TempList();
           for (fg::FNode *succ_fnode : (*fnode_it)->Succ()->GetList())
@@ -249,39 +217,25 @@ void LiveGraphFactory::LiveMap(fg::FGraphPtr flowgraph) {
 
           if (out_n->IdentitalTo(out_.get()->Look(*fnode_it)) 
               && in_n->IdentitalTo(in_.get()->Look(*fnode_it))) {
-            std::cout << "remain invariant" << std::endl;
             finished++;
           } else {
             out_.get()->Enter((*fnode_it), out_n);
             in_.get()->Enter(*fnode_it, in_n);
           }
-
-          std::cout << "live out: ";
-          for (temp::Temp *t : out_n->GetList()) 
-            std::cout << *global_map->Look(t) << ' ';
-          std::cout << std::endl;
-          std::cout << "live in: ";
-          for (temp::Temp *t : in_n->GetList()) 
-            std::cout << *global_map->Look(t) << ' ';
-          std::cout << std::endl << std::endl;
     } 
   }
 }
 
 void LiveGraphFactory::InterfGraph(fg::FGraphPtr flowgraph, MoveList **worklist_moves) {
   /* TODO: Put your lab6 code here */
-  // Reset the edges and degrees
-  live_graph_.interf_graph->ClearEdge();
 
   for (fg::FNode *fnode : flowgraph->Nodes()->GetList()) {
     assem::Instr *instr = fnode->NodeInfo();
     temp::TempList *live = out_.get()->Look(fnode);
 
     if (typeid(*instr) == typeid(assem::MoveInstr)) {  // move instruction
-      // std::cout << "assert use and def for move instruction" << std::endl;
       assert(instr->Def()->GetList().size() == 1);
       assert(instr->Use()->GetList().size() == 1);
-      // std::cout << "assertion succeeds" << std::endl;
 
       live = live->Diff(instr->Use());
 
@@ -295,11 +249,6 @@ void LiveGraphFactory::InterfGraph(fg::FGraphPtr flowgraph, MoveList **worklist_
       for (temp::Temp *reg : defs_and_uses->GetList()) {
         INode *n = temp_node_map_->Look(reg);
         MoveList *new_moves = live_graph_.move_list->Look(n)->Union(single_move);;
-        // std::cout << "add move from " << *temp::Map::Name()->Look(use_n->NodeInfo()) << " to "
-        //           << *temp::Map::Name()->Look(def_n->NodeInfo()) << " to " 
-        //           << *temp::Map::Name()->Look(n->NodeInfo()) << std::endl;
-        // std::cout << "size of look is " << live_graph_.move_list->Look(n)->GetList().size()
-        //           << ", size after add is " << new_moves->GetList().size() << std::endl;
         live_graph_.move_list->Set(n, new_moves);
       }
 
@@ -333,6 +282,7 @@ void LiveGraphFactory::BuildIGraph(assem::InstrList *instr_list) {
   for (temp::Temp *reg : reg_manager->Registers()->GetList()) {
     if (temp_node_map_->Look(reg) == nullptr) {
       INode *n = live_graph_.interf_graph->NewNode(reg);
+      live_graph_.interf_graph->SetDegree(n, std::numeric_limits<int>::max());
       live_graph_.move_list->Enter(n, new MoveList());
       temp_node_map_->Enter(reg, n);
       node_instr_map_.get()->insert(std::make_pair(n, new std::vector<InstrPos>()));
@@ -342,9 +292,6 @@ void LiveGraphFactory::BuildIGraph(assem::InstrList *instr_list) {
   // Add temporaries as nodes to interference graph
   for (auto instr_it = instr_list->GetList().cbegin();
         instr_it != instr_list->GetList().cend(); instr_it++) {
-
-    (*instr_it)->Print(stdout, temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name()));
-
     INode *n;
     temp::TempList *defs_and_uses = (*instr_it)->Def()->Union((*instr_it)->Use());
     for (temp::Temp *reg : defs_and_uses->GetList()) {
