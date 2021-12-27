@@ -1,8 +1,10 @@
-# Tiger Compiler Labs in C++
+# Tiger Compiler
+
+Tiger Compiler is the basic implementation based on *Modern Compiler Implementation in C*, which is written by Andrew W. Appel. It is the course project for *Compilers* in 2021 Fall, SJTU. The following documents for now are scripted by the course TAs.
 
 ## Contents
 
-- [Tiger Compiler Labs in C++](#tiger-compiler-labs-in-c)
+- [Tiger Compiler](#tiger-compiler)
   - [Contents](#contents)
   - [Overview](#overview)
   - [Difference Between C Labs and C++ Labs](#difference-between-c-labs-and-c-labs)
