@@ -83,7 +83,6 @@ public:
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
 protected:
   Frame() = default;
   explicit Frame(temp::Label *name) : name_(name), local_count_(0), max_outgoing_args_(0) {}
@@ -161,7 +160,6 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
 
 } // namespace frame
 

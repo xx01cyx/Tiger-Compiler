@@ -27,7 +27,6 @@ public:
 };
 
 class RegAllocator {
-  /* TODO: Put your lab6 code here */
 public:
   RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> assem_instr);
 

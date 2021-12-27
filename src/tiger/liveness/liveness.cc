@@ -190,7 +190,6 @@ MoveList *MoveList::Diff(MoveList *list) {
 }
 
 void LiveGraphFactory::LiveMap(fg::FGraphPtr flowgraph) {
-  /* TODO: Put your lab6 code here */
 
   for (fg::FNode *fnode : flowgraph->Nodes()->GetList()) {
     in_.get()->Enter(fnode, new temp::TempList());
@@ -227,7 +226,6 @@ void LiveGraphFactory::LiveMap(fg::FGraphPtr flowgraph) {
 }
 
 void LiveGraphFactory::InterfGraph(fg::FGraphPtr flowgraph, MoveList **worklist_moves) {
-  /* TODO: Put your lab6 code here */
 
   for (fg::FNode *fnode : flowgraph->Nodes()->GetList()) {
     assem::Instr *instr = fnode->NodeInfo();

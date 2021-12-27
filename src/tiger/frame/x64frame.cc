@@ -6,7 +6,6 @@
 extern frame::RegManager *reg_manager;
 
 namespace frame {
-/* TODO: Put your lab5 code here */
 std::unordered_map<X64RegManager::Register, std::string> X64RegManager::reg_str = 
   std::unordered_map<X64RegManager::Register, std::string>{
     { RAX, "%rax" },
@@ -140,7 +139,6 @@ public:
 };
 
 class X64Frame : public Frame {
-  /* TODO: Put your lab5 code here */
 public:
   X64Frame(temp::Label *name) : Frame(name) {
     word_size_ = X64_WORD_SIZE;
@@ -208,7 +206,7 @@ Frame *NewFrame(temp::Label *name, std::vector<bool> formals) {
     if (formals.at(i)) {  // escape
       frame->formal_access_.push_back(new InFrameAccess(frame_offset));
       dst_exp = new tree::MemExp(new tree::BinopExp(tree::MINUS_OP, 
-                  fp_exp, new tree::ConstExp((i + 1) * frame->WordSize())));  // FIXME!
+                  fp_exp, new tree::ConstExp((i + 1) * frame->WordSize())));
       frame_offset += frame->WordSize();
       frame->local_count_++;
     } else {

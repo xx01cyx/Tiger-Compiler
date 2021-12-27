@@ -31,7 +31,6 @@ public:
   frame::Frame *frame_;
   Level *parent_;
 
-  /* TODO: Put your lab5 code here */
   Level() : frame_(nullptr), parent_(nullptr) {}
   explicit Level(frame::Frame *frame) : frame_(frame), parent_(nullptr) {}
   Level(frame::Frame *frame, Level *parent) : frame_(frame), parent_(parent) {}

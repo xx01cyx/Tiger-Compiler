@@ -4,36 +4,30 @@
 
 namespace A {
 int A::CompoundStm::MaxArgs() const {
-    // TODO: put your code here (lab1).
     int maxArgs1 = stm1->MaxArgs();
     int maxArgs2 = stm2->MaxArgs();
     return maxArgs1 > maxArgs2 ? maxArgs1: maxArgs2;
 }
 
 Table *A::CompoundStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
   return stm2->Interp(stm1->Interp(t));
 }
 
 int A::AssignStm::MaxArgs() const {
-  // TODO: put your code here (lab1).
   return exp->MaxArgs();
 }
 
 Table *A::AssignStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
   return t->Update(id, exp->Interp(t)->i);
 }
 
 int A::PrintStm::MaxArgs() const {
-  // TODO: put your code here (lab1).
   int numExps = exps->NumExps();
   int maxArgs = exps->MaxArgs();
   return numExps > maxArgs ? numExps : maxArgs;
 }
 
 Table *A::PrintStm::Interp(Table *t) const {
-  // TODO: put your code here (lab1).
   if (exps->NumExps() != 1) {
       PairExpList* pairExpList = (PairExpList*)exps;
       std::cout << pairExpList->exp->Interp(t)->i << ' ';
@@ -100,7 +94,6 @@ int A::PairExpList::NumExps() const {
     return tail->NumExps() + 1;
 }
 
-// FIXME
 IntAndTable* A::PairExpList::Interp(Table* t) const {
     return new IntAndTable(exp->Interp(t)->i, t);
 }

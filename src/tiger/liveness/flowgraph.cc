@@ -3,8 +3,7 @@
 namespace fg {
 
 void FlowGraphFactory::AssemFlowGraph(assem::InstrList *instr_list) {
-  /* TODO: Put your lab6 code here */
-
+  
   // Construct the graph by adding all instructions as nodes without adding edges.
   for (assem::Instr *instr : instr_list->GetList()) {
     FNode *node = flowgraph_->NewNode(instr);
@@ -52,32 +51,26 @@ void FlowGraphFactory::AssemFlowGraph(assem::InstrList *instr_list) {
 namespace assem {
 
 temp::TempList *LabelInstr::Def() const {
-  /* TODO: Put your lab6 code here */
   return new temp::TempList();
 }
 
 temp::TempList *MoveInstr::Def() const {
-  /* TODO: Put your lab6 code here */
   return dst_ == nullptr ? new temp::TempList() : dst_;
 }
 
 temp::TempList *OperInstr::Def() const {
-  /* TODO: Put your lab6 code here */
   return dst_ == nullptr ? new temp::TempList() : dst_;
 }
 
 temp::TempList *LabelInstr::Use() const {
-  /* TODO: Put your lab6 code here */
   return new temp::TempList();
 }
 
 temp::TempList *MoveInstr::Use() const {
-  /* TODO: Put your lab6 code here */
   return src_ == nullptr ? new temp::TempList() : src_;
 }
 
 temp::TempList *OperInstr::Use() const {
-  /* TODO: Put your lab6 code here */
   return src_ == nullptr ? new temp::TempList() : src_;
 }
 } // namespace assem

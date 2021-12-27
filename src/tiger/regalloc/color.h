@@ -16,7 +16,6 @@ struct Result {
 };
 
 class Color {
-  /* TODO: Put your lab6 code here */
 };
 } // namespace col
 

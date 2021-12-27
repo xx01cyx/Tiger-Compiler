@@ -1,7 +1,6 @@
 #include "tiger/absyn/absyn.h"
 #include "tiger/semant/semant.h"
 
-#include <iostream>
 #include <unordered_map>
 
 using namespace std;
@@ -9,13 +8,11 @@ namespace absyn {
 
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   root_->SemAnalyze(venv, tenv, 0, errormsg);
 }
 
 type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   env::EnvEntry* entry = venv->Look(sym_);
   if (!entry || typeid(*entry) != typeid(env::VarEntry)) {
     errormsg->Error(pos_, "undefined variable %s", sym_->Name().data());
@@ -26,7 +23,6 @@ type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* varTy;
 
   varTy = var_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
@@ -50,7 +46,6 @@ type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 type::Ty *SubscriptVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    int labelcount,
                                    err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* varTy, * subscriptTy;
 
   varTy = var_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
@@ -70,31 +65,26 @@ type::Ty *SubscriptVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *VarExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return var_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
 }
 
 type::Ty *NilExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return type::NilTy::Instance();
 }
 
 type::Ty *IntExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return type::IntTy::Instance();
 }
 
 type::Ty *StringExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return type::StringTy::Instance();
 }
 
 type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                               int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   env::EnvEntry* entry;
   env::FunEntry* funcEnt;
   type::TyList* formalList;
@@ -136,7 +126,6 @@ type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *OpExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                             int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty *leftTy = left_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
   type::Ty *rightTy = right_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
 
@@ -158,7 +147,6 @@ type::Ty *OpExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *RecordExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* ty = tenv->Look(typ_);
   if (!ty) {
     errormsg->Error(pos_, "undefined type %s", typ_->Name().data());
@@ -169,7 +157,6 @@ type::Ty *RecordExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *SeqExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* ty;
   for (Exp* exp : seq_->GetList())
     ty = exp->SemAnalyze(venv, tenv, labelcount, errormsg);
@@ -178,7 +165,6 @@ type::Ty *SeqExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *AssignExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* varTy = var_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
   type::Ty* expTy = exp_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
 
@@ -201,7 +187,6 @@ type::Ty *AssignExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                             int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* testTy, * thenTy, * elseTy;
 
   testTy = test_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
@@ -230,7 +215,6 @@ type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *WhileExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   venv->BeginScope();
   tenv->BeginScope();
 
@@ -256,7 +240,6 @@ type::Ty *WhileExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* loTy, * hiTy, * bodyTy;
 
   venv->BeginScope();
@@ -293,7 +276,6 @@ type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *BreakExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   if (labelcount != -1)
     errormsg->Error(pos_, "break is not inside any loop");
   return type::VoidTy::Instance();
@@ -301,14 +283,12 @@ type::Ty *BreakExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   venv->BeginScope();
   tenv->BeginScope();
 
-  for (Dec* dec : decs_->GetList()) {
-//    std::cout << "LetExp: dec is " << typeid(*dec).name() << std::endl;
+  for (Dec* dec : decs_->GetList())
     dec->SemAnalyze(venv, tenv, labelcount, errormsg);
-  }
+
   type::Ty *result = body_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
 
   venv->EndScope();
@@ -319,7 +299,6 @@ type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* arrayTy, * sizeTy, * initTy;
 
   arrayTy = tenv->Look(typ_);
@@ -346,13 +325,11 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *VoidExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                               int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return type::VoidTy::Instance();
 }
 
 void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* resultTy, * bodyTy;
   type::TyList* formals;
   unordered_map<string, int> functionRecord;
@@ -393,7 +370,6 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                         err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* ty, * initTy;
 
   if (typ_) {
@@ -419,7 +395,6 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
 
 void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                          err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* ty;
   type::NameTy* tenvTy;
   unordered_map<string, int> typeRecord;
@@ -459,21 +434,18 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
 }
 
 type::Ty *NameTy::SemAnalyze(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::Ty* ty = tenv->Look(name_);
   return ty;
 }
 
 type::Ty *RecordTy::SemAnalyze(env::TEnvPtr tenv,
                                err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   type::FieldList* fieldList = record_->MakeFieldList(tenv, errormsg);
   return new type::RecordTy(fieldList);
 }
 
 type::Ty *ArrayTy::SemAnalyze(env::TEnvPtr tenv,
                               err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab4 code here */
   return new type::ArrayTy(tenv->Look(array_));
 }
 

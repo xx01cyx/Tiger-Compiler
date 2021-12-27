@@ -38,7 +38,6 @@
   FUNCTION VAR TYPE
 
 /* token priority */
-/* TODO: Put your lab3 code here */
 %nonassoc ASSIGN
 %left OR
 %left AND
@@ -66,8 +65,6 @@
 %%
 program:  exp  {absyn_tree_ = std::make_unique<absyn::AbsynTree>($1);}
   ;
-
-/* TODO: Put your lab3 code here */
 
 // ------Expressions and List------
 

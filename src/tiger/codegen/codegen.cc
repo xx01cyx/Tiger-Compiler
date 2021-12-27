@@ -17,11 +17,11 @@ constexpr int wordsize = 8;
 namespace cg {
 
 void CodeGen::Codegen() {
-  /* TODO: Put your lab5 code here */
   tree::StmList *stm_list = traces_.get()->GetStmList();
   assem::InstrList *instr_list = new assem::InstrList();
   for (auto stm : stm_list->GetList())
     stm->Munch(*instr_list, fs_);
+    
   // Pseudo instruction regarding return sink should be appended here
   // to inform the compiler of the sinking registers.
   instr_list = frame::ProcEntryExit2(instr_list);
@@ -36,7 +36,6 @@ void AssemInstr::Print(FILE *out, temp::Map *map) const {
 } // namespace cg
 
 namespace tree {
-/* TODO: Put your lab5 code here */
 static assem::MemFetch *MunchMem(tree::Exp* mem_exp, int ordinal, 
                                  assem::InstrList &instr_list, std::string_view fs) {
   tree::Exp *exp = static_cast<tree::MemExp *>(mem_exp)->exp_;
@@ -76,25 +75,21 @@ static assem::MemFetch *MunchMem(tree::Exp* mem_exp, int ordinal,
 }
 
 void SeqStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   left_->Munch(instr_list, fs);
   right_->Munch(instr_list, fs);
 }
 
 void LabelStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   instr_list.Append(new assem::LabelInstr(label_->Name(), label_));
 }
 
 void JumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   std::string instr_str = "jmp " + exp_->name_->Name();
   instr_list.Append(new assem::OperInstr(instr_str, nullptr, nullptr, 
                       new assem::Targets(jumps_)));
 }
 
 void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   /* No two immediates appear at the same time. The immediate is always
      the first operand for cmpq. */
   std::stringstream instr_ss;
@@ -137,7 +132,6 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   std::stringstream instr_ss;
 
   if (typeid(*dst_) == typeid(tree::MemExp)) {  // movq r, M
@@ -177,12 +171,10 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   exp_->Munch(instr_list, fs);
 }
 
 temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   std::string assem_instr;
   std::stringstream instr_ss;
 
@@ -312,7 +304,6 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   temp::Temp *reg = temp::TempFactory::NewTemp();
   assem::MemFetch* fetch = MunchMem(this, 0, instr_list, fs);
   std::stringstream instr_ss;
@@ -324,18 +315,15 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   return temp_;
 }
 
 temp::Temp *EseqExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   stm_->Munch(instr_list, fs);
   return exp_->Munch(instr_list, fs);
 }
 
 temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   temp::Temp *reg = temp::TempFactory::NewTemp();
   std::stringstream instr_ss;
   // load address
@@ -348,7 +336,6 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   temp::Temp *reg = temp::TempFactory::NewTemp();
   std::stringstream instr_ss;
   instr_ss << "movq $" << consti_ << ", `d0";
@@ -360,7 +347,6 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   temp::Temp *rax = reg_manager->ReturnValue();
   std::stringstream instr_ss;
 
@@ -378,7 +364,6 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   temp::TempList *arg_list = new temp::TempList();
   std::stringstream instr_ss;
   int arg_reg_count = reg_manager->ArgRegs()->GetList().size();
@@ -433,7 +418,5 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
 
   return arg_list;
 }
-
-
 
 } // namespace tree
